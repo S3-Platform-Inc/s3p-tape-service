@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+
 import uvicorn
+from fastapi import FastAPI
 
 from .api.health import router as health_router
 from .db import close_pool, open_pool
@@ -37,4 +39,4 @@ app = create_app()
 
 
 def run() -> None:
-    uvicorn.run("tape_service.main:app", host="0.0.0.0", port=8000, log_config=None)
+    uvicorn.run("tape_service.main:app", host="0.0.0.0", port=8000, log_config=None)  # noqa: S104

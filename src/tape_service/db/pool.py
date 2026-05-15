@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 import logging
+
 from psycopg_pool import ConnectionPool
+
 from ..settings import get_settings
 
 log = logging.getLogger(__name__)

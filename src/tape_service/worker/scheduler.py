@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 import logging
+
 from apscheduler.schedulers.blocking import BlockingScheduler
+
 from ..settings import get_settings
 
 log = logging.getLogger(__name__)
