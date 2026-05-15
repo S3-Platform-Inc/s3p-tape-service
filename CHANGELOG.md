@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/S3-Platform-Inc/s3p-tape-service/compare/v1.0.0...v1.0.1) (2026-05-15)
+
+### Bug Fixes
+
+* **docker:** set SHELL with pipefail to harden curl|sh uv install ([d0f7654](https://github.com/S3-Platform-Inc/s3p-tape-service/commit/d0f76544deaa8fd0d07431af5d15032f7145d4ce))
+
 ## 1.0.0 (2026-05-15)
 
 ### Features
