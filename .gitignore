@@ -455,3 +455,28 @@ cython_debug/
 
 # Android studio 3.1+ serialized cache file
 
+
+# --- s3p-tape-service ---
+
+# Plans and working notes (per user pref)
+docs/superpowers/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Env
+.env
+.env.local
+
+# macOS
+.DS_Store
