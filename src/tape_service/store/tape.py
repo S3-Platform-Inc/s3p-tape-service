@@ -83,6 +83,27 @@ def upsert_config(
     client.hset(cfg_key(user_id), mapping=mapping)
 
 
+def list_users_with_config(client: redis.Redis) -> list[tuple[int, bool]]:
+    """SCAN the tape:cfg:<user_id> hashes and return [(user_id, dirty)].
+
+    Skips tape:cfg:src:<user_id> sets (different key namespace prefix).
+    Uses SCAN, not KEYS, so it stays cheap on large instances.
+    """
+    out: list[tuple[int, bool]] = []
+    for raw_key in client.scan_iter(match="tape:cfg:*", count=200):
+        key = raw_key if isinstance(raw_key, str) else raw_key.decode("utf-8")
+        if key.startswith("tape:cfg:src:"):
+            continue
+        suffix = key.removeprefix("tape:cfg:")
+        try:
+            uid = int(suffix)
+        except ValueError:
+            continue
+        dirty = client.hget(key, "dirty") == "1"
+        out.append((uid, dirty))
+    return out
+
+
 def mark_dirty(client: redis.Redis, *, user_id: int) -> None:
     client.hset(cfg_key(user_id), "dirty", "1")
 
