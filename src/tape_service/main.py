@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from .api.auth import router as auth_router
 from .api.config import router as config_router
 from .api.health import router as health_router
+from .api.tape import router as tape_router
 from .db import close_pool, open_pool
 from .errors import ApiError, api_error_handler
 from .logging_setup import configure_logging
@@ -39,6 +40,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(config_router)
+    app.include_router(tape_router)
     return app
 
 
