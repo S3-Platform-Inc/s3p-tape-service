@@ -7,6 +7,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from .api.auth import router as auth_router
+from .api.config import router as config_router
 from .api.health import router as health_router
 from .db import close_pool, open_pool
 from .errors import ApiError, api_error_handler
@@ -37,6 +38,7 @@ def create_app() -> FastAPI:
     app.add_exception_handler(ApiError, api_error_handler)
     app.include_router(health_router)
     app.include_router(auth_router)
+    app.include_router(config_router)
     return app
 
 
