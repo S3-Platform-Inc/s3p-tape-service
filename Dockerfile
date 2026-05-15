@@ -20,6 +20,12 @@ COPY src/ ./src/
 ENV PATH="/app/.venv/bin:${PATH}" \
     PYTHONPATH="/app/src"
 
+# Run as an unprivileged user. /app and its venv are world-readable
+# (the install step ran as root) so this is the only chown needed.
+RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin svc && \
+    chown -R svc:svc /app
+USER svc
+
 CMD ["uvicorn", "tape_service.main:app", \
      "--host", "0.0.0.0", "--port", "8000", \
      "--log-config", "/dev/null"]
