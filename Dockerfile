@@ -13,7 +13,10 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     ln -s /root/.local/bin/uv /usr/local/bin/uv
 
 WORKDIR /app
-COPY pyproject.toml uv.lock .python-version ./
+# README.md is required by hatchling because pyproject.toml declares
+# readme = "README.md"; copy it alongside the lockfile so `uv sync` can
+# build the project metadata.
+COPY pyproject.toml uv.lock .python-version README.md ./
 RUN uv sync --frozen --no-dev
 
 COPY src/ ./src/
@@ -26,6 +29,7 @@ RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin svc && \
     chown -R svc:svc /app
 USER svc
 
-CMD ["uvicorn", "tape_service.main:app", \
-     "--host", "0.0.0.0", "--port", "8000", \
-     "--log-config", "/dev/null"]
+# Use the console-script entry so our run() function controls uvicorn
+# config (log_config=None, host/port). Avoids fighting uvicorn's CLI
+# log-config parser.
+CMD ["tape-service-api"]
