@@ -6,6 +6,7 @@ import signal
 from .db import close_pool, open_pool
 from .logging_setup import configure_logging
 from .settings import get_settings
+from .store import close_redis, open_redis
 from .worker.scheduler import build_scheduler
 
 log = logging.getLogger(__name__)
@@ -15,6 +16,7 @@ def run() -> None:
     s = get_settings()
     configure_logging(s.log_level)
     open_pool()
+    open_redis()
     sched = build_scheduler()
 
     def _stop(_signum, _frame):
@@ -28,6 +30,7 @@ def run() -> None:
     try:
         sched.start()
     finally:
+        close_redis()
         close_pool()
         log.info("worker.shutdown")
 

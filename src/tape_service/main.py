@@ -11,6 +11,7 @@ from .db import close_pool, open_pool
 from .errors import ApiError, api_error_handler
 from .logging_setup import configure_logging
 from .settings import get_settings
+from .store import close_redis, open_redis
 
 log = logging.getLogger(__name__)
 
@@ -20,10 +21,12 @@ async def lifespan(_app: FastAPI):
     s = get_settings()
     configure_logging(s.log_level)
     open_pool()
+    open_redis()
     log.info("api.startup")
     try:
         yield
     finally:
+        close_redis()
         close_pool()
         log.info("api.shutdown")
 
