@@ -44,7 +44,7 @@ class ScoreNotifyListener:
         if self._conn is not None:
             try:
                 self._conn.close()
-            except Exception:
+            except Exception:  # noqa: S110 - best-effort close during shutdown
                 pass
         if self._thread is not None:
             self._thread.join(timeout=timeout)

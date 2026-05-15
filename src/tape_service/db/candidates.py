@@ -27,10 +27,13 @@ def candidates_for_user(
     """
     if not source_ids:
         return []
-    # Whitelisted by Literal type — never user input.
+    # Whitelisted by Literal type — never user input. Postgres won't
+    # accept ORDER BY direction as a bind parameter, so the constant
+    # has to be interpolated; the conditional above ensures it's one of
+    # exactly two literal strings.
     order_clause = "DESC" if ordering == "desc" else "ASC"
     sql = (
-        "SELECT d.id FROM documents.document d "
+        "SELECT d.id FROM documents.document d "  # noqa: S608
         "WHERE d.sourceid = ANY(%s) "
         "  AND (%s::timestamptz IS NULL OR d.published >= %s::timestamptz) "
         "  AND (%s::timestamptz IS NULL OR d.published <= %s::timestamptz) "
