@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 
+from .api.auth import router as auth_router
 from .api.health import router as health_router
 from .db import close_pool, open_pool
 from .errors import ApiError, api_error_handler
@@ -35,6 +36,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="S3 Platform Tape Service", version="0.1.0", lifespan=lifespan)
     app.add_exception_handler(ApiError, api_error_handler)
     app.include_router(health_router)
+    app.include_router(auth_router)
     return app
 
 

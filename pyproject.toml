@@ -49,6 +49,15 @@ ignore = ["S101"]
 # Test seed tokens are public dev-only literals; not real secrets.
 "tests/**" = ["S105", "S106"]
 
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's Depends/Header/Query/Cookie are designed to live in arg defaults.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Header",
+    "fastapi.Query",
+    "fastapi.Cookie",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
