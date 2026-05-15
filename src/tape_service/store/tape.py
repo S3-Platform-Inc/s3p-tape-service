@@ -117,9 +117,7 @@ def get_config_sources(client: redis.Redis, *, user_id: int) -> list[int]:
     return sorted(int(m) for m in members)
 
 
-def set_config_sources(
-    client: redis.Redis, *, user_id: int, source_ids: list[int]
-) -> None:
+def set_config_sources(client: redis.Redis, *, user_id: int, source_ids: list[int]) -> None:
     key = cfg_sources_key(user_id)
     pipe = client.pipeline(transaction=True)
     pipe.delete(key)
@@ -141,8 +139,12 @@ def list_entries_page(
         rows = client.zrange(key, 0, limit - 1, withscores=True)
     else:
         rows = client.zrangebyscore(
-            key, min=f"({after_position}", max="+inf",
-            start=0, num=limit, withscores=True,
+            key,
+            min=f"({after_position}",
+            max="+inf",
+            start=0,
+            num=limit,
+            withscores=True,
         )
     return [(int(score), int(member)) for member, score in rows]
 
@@ -211,8 +213,13 @@ def create_run(client: redis.Redis, *, user_id: int, kind: str) -> int:
 
 
 def finish_run(
-    client: redis.Redis, *, user_id: int, run_id: int, status: str,
-    added: int, removed: int,
+    client: redis.Redis,
+    *,
+    user_id: int,
+    run_id: int,
+    status: str,
+    added: int,
+    removed: int,
 ) -> None:
     client.xadd(
         runs_key(user_id),

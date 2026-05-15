@@ -40,9 +40,13 @@ def test_get_config_returns_none_when_missing(redis_client, cleanup):
 
 def test_upsert_then_get_config(redis_client, cleanup):
     upsert_config(
-        redis_client, user_id=9202,
-        ordering="desc", display_mode="compact",
-        page_size=25, date_from=None, date_to=None,
+        redis_client,
+        user_id=9202,
+        ordering="desc",
+        display_mode="compact",
+        page_size=25,
+        date_from=None,
+        date_to=None,
     )
     cfg = get_config(redis_client, user_id=9202)
     assert cfg is not None
@@ -55,9 +59,13 @@ def test_upsert_then_get_config(redis_client, cleanup):
 
 def test_set_and_get_config_sources(redis_client, cleanup):
     upsert_config(
-        redis_client, user_id=9203,
-        ordering="asc", display_mode="detailed",
-        page_size=10, date_from=None, date_to=None,
+        redis_client,
+        user_id=9203,
+        ordering="asc",
+        display_mode="detailed",
+        page_size=10,
+        date_from=None,
+        date_to=None,
     )
     set_config_sources(redis_client, user_id=9203, source_ids=[1, 2])
     assert get_config_sources(redis_client, user_id=9203) == [1, 2]
@@ -67,9 +75,13 @@ def test_set_and_get_config_sources(redis_client, cleanup):
 
 def test_clear_dirty(redis_client, cleanup):
     upsert_config(
-        redis_client, user_id=9204,
-        ordering="desc", display_mode="compact",
-        page_size=20, date_from=None, date_to=None,
+        redis_client,
+        user_id=9204,
+        ordering="desc",
+        display_mode="compact",
+        page_size=20,
+        date_from=None,
+        date_to=None,
     )
     clear_dirty(redis_client, user_id=9204)
     cfg = get_config(redis_client, user_id=9204)
@@ -78,9 +90,11 @@ def test_clear_dirty(redis_client, cleanup):
 
 def test_append_entries_and_paging(redis_client, cleanup):
     n = append_entries(
-        redis_client, user_id=9205,
+        redis_client,
+        user_id=9205,
         doc_ids=[101, 102, 103, 104, 105],
-        run_id=1, start_position=0,
+        run_id=1,
+        start_position=0,
     )
     assert n == 5
     assert count_entries(redis_client, user_id=9205) == 5
@@ -95,12 +109,18 @@ def test_append_entries_and_paging(redis_client, cleanup):
 
 def test_append_entries_skips_existing(redis_client, cleanup):
     append_entries(
-        redis_client, user_id=9206, doc_ids=[1, 2, 3],
-        run_id=1, start_position=0,
+        redis_client,
+        user_id=9206,
+        doc_ids=[1, 2, 3],
+        run_id=1,
+        start_position=0,
     )
     n = append_entries(
-        redis_client, user_id=9206, doc_ids=[2, 3, 4],
-        run_id=2, start_position=3,
+        redis_client,
+        user_id=9206,
+        doc_ids=[2, 3, 4],
+        run_id=2,
+        start_position=3,
     )
     assert n == 1
     assert count_entries(redis_client, user_id=9206) == 4
@@ -108,8 +128,11 @@ def test_append_entries_skips_existing(redis_client, cleanup):
 
 def test_remove_entry(redis_client, cleanup):
     append_entries(
-        redis_client, user_id=9207, doc_ids=[10, 11, 12],
-        run_id=1, start_position=0,
+        redis_client,
+        user_id=9207,
+        doc_ids=[10, 11, 12],
+        run_id=1,
+        start_position=0,
     )
     assert remove_entry(redis_client, user_id=9207, document_id=11) == 1
     assert remove_entry(redis_client, user_id=9207, document_id=11) == 0
@@ -118,8 +141,11 @@ def test_remove_entry(redis_client, cleanup):
 
 def test_delete_all_entries(redis_client, cleanup):
     append_entries(
-        redis_client, user_id=9208, doc_ids=[20, 21, 22, 23],
-        run_id=1, start_position=0,
+        redis_client,
+        user_id=9208,
+        doc_ids=[20, 21, 22, 23],
+        run_id=1,
+        start_position=0,
     )
     removed = delete_all_entries(redis_client, user_id=9208)
     assert removed == 4
@@ -130,6 +156,10 @@ def test_run_lifecycle(redis_client, cleanup):
     run_id = create_run(redis_client, user_id=9209, kind="full")
     assert isinstance(run_id, int) and run_id > 0
     finish_run(
-        redis_client, user_id=9209, run_id=run_id,
-        status="ok", added=3, removed=0,
+        redis_client,
+        user_id=9209,
+        run_id=run_id,
+        status="ok",
+        added=3,
+        removed=0,
     )

@@ -60,7 +60,8 @@ def read_config(user: CurrentUser = Depends(current_user)) -> ConfigResponse:
 
 @router.put("", response_model=ConfigResponse)
 def write_config(
-    payload: ConfigUpdate, user: CurrentUser = Depends(current_user),
+    payload: ConfigUpdate,
+    user: CurrentUser = Depends(current_user),
 ) -> ConfigResponse:
     # Whitelist source ids against users.sources(user_id) before persisting.
     allowed, _ = _hydrate_sources(user.user_id)
@@ -83,6 +84,8 @@ def write_config(
         date_to=payload.date_to,
     )
     tape_store.set_config_sources(
-        r, user_id=user.user_id, source_ids=list(payload.selected_source_ids),
+        r,
+        user_id=user.user_id,
+        source_ids=list(payload.selected_source_ids),
     )
     return read_config(user=user)

@@ -50,24 +50,30 @@ def test_get_config_returns_defaults_for_new_user(client, alpha_clean_config):
 
 def test_put_config_rejects_unauthorized_source(client, alpha_clean_config):
     _login(client)
-    r = client.put("/config", json={
-        "ordering": "desc",
-        "display_mode": "compact",
-        "page_size": 10,
-        "selected_source_ids": [-999],
-    })
+    r = client.put(
+        "/config",
+        json={
+            "ordering": "desc",
+            "display_mode": "compact",
+            "page_size": 10,
+            "selected_source_ids": [-999],
+        },
+    )
     assert r.status_code == 403
     assert r.json()["error"]["code"] == "FORBIDDEN"
 
 
 def test_put_config_round_trips_and_marks_dirty(client, alpha_clean_config):
     _login(client)
-    r = client.put("/config", json={
-        "ordering": "asc",
-        "display_mode": "detailed",
-        "page_size": 50,
-        "selected_source_ids": [1, 2],
-    })
+    r = client.put(
+        "/config",
+        json={
+            "ordering": "asc",
+            "display_mode": "detailed",
+            "page_size": 50,
+            "selected_source_ids": [1, 2],
+        },
+    )
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["ordering"] == "asc"
@@ -89,10 +95,13 @@ def test_put_config_round_trips_and_marks_dirty(client, alpha_clean_config):
 
 def test_put_config_validation_rejects_huge_page_size(client, alpha_clean_config):
     _login(client)
-    r = client.put("/config", json={
-        "ordering": "desc",
-        "display_mode": "compact",
-        "page_size": 9999,
-        "selected_source_ids": [],
-    })
+    r = client.put(
+        "/config",
+        json={
+            "ordering": "desc",
+            "display_mode": "compact",
+            "page_size": 9999,
+            "selected_source_ids": [],
+        },
+    )
     assert r.status_code == 422

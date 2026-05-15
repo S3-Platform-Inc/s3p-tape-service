@@ -57,9 +57,13 @@ def test_get_tape_empty_when_no_config(client, clean_alpha):
 
 def test_get_tape_preparing_when_dirty_no_entries(client, clean_alpha, redis_client):
     upsert_config(
-        redis_client, user_id=1,
-        ordering="asc", display_mode="compact", page_size=10,
-        date_from=None, date_to=None,
+        redis_client,
+        user_id=1,
+        ordering="asc",
+        display_mode="compact",
+        page_size=10,
+        date_from=None,
+        date_to=None,
     )
     set_config_sources(redis_client, user_id=1, source_ids=[1, 2])
     _login(client)
@@ -71,13 +75,21 @@ def test_get_tape_preparing_when_dirty_no_entries(client, clean_alpha, redis_cli
 
 def test_get_tape_ok_with_entries(client, clean_alpha, redis_client):
     upsert_config(
-        redis_client, user_id=1,
-        ordering="asc", display_mode="compact", page_size=10,
-        date_from=None, date_to=None,
+        redis_client,
+        user_id=1,
+        ordering="asc",
+        display_mode="compact",
+        page_size=10,
+        date_from=None,
+        date_to=None,
     )
     set_config_sources(redis_client, user_id=1, source_ids=[1, 2])
     append_entries(
-        redis_client, user_id=1, doc_ids=[1, 2, 3], run_id=0, start_position=0,
+        redis_client,
+        user_id=1,
+        doc_ids=[1, 2, 3],
+        run_id=0,
+        start_position=0,
     )
     _login(client)
     r = client.get("/tape")
@@ -94,13 +106,21 @@ def test_get_tape_ok_with_entries(client, clean_alpha, redis_client):
 
 def test_get_tape_detailed_mode_includes_text(client, clean_alpha, redis_client):
     upsert_config(
-        redis_client, user_id=1,
-        ordering="asc", display_mode="detailed", page_size=10,
-        date_from=None, date_to=None,
+        redis_client,
+        user_id=1,
+        ordering="asc",
+        display_mode="detailed",
+        page_size=10,
+        date_from=None,
+        date_to=None,
     )
     set_config_sources(redis_client, user_id=1, source_ids=[1])
     append_entries(
-        redis_client, user_id=1, doc_ids=[1], run_id=0, start_position=0,
+        redis_client,
+        user_id=1,
+        doc_ids=[1],
+        run_id=0,
+        start_position=0,
     )
     _login(client)
     r = client.get("/tape")
@@ -111,14 +131,21 @@ def test_get_tape_detailed_mode_includes_text(client, clean_alpha, redis_client)
 
 def test_get_tape_paging(client, clean_alpha, redis_client):
     upsert_config(
-        redis_client, user_id=1,
-        ordering="asc", display_mode="compact", page_size=2,
-        date_from=None, date_to=None,
+        redis_client,
+        user_id=1,
+        ordering="asc",
+        display_mode="compact",
+        page_size=2,
+        date_from=None,
+        date_to=None,
     )
     set_config_sources(redis_client, user_id=1, source_ids=[1, 2])
     append_entries(
-        redis_client, user_id=1, doc_ids=[1, 2, 3, 4, 5],
-        run_id=0, start_position=0,
+        redis_client,
+        user_id=1,
+        doc_ids=[1, 2, 3, 4, 5],
+        run_id=0,
+        start_position=0,
     )
     _login(client)
 

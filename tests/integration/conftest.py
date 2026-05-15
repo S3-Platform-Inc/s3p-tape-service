@@ -22,6 +22,7 @@ def pg_dsn() -> str:
         docker compose down -v pg && docker compose up -d pg
     """
     import psycopg
+
     dsn = os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL)
     try:
         with psycopg.connect(dsn, connect_timeout=2) as conn:
@@ -37,6 +38,7 @@ def pg_dsn() -> str:
 def redis_url() -> str:
     """Yield the dev Redis URL, or skip if Redis isn't reachable."""
     import redis
+
     url = os.environ.get("REDIS_URL", DEFAULT_REDIS_URL)
     try:
         client = redis.Redis.from_url(url, socket_connect_timeout=2)
@@ -52,6 +54,7 @@ def redis_client(redis_url: str):
     """A fresh redis.Redis bound to the dev URL. Caller is responsible for
     namespacing keys it touches so concurrent tests don't collide."""
     import redis
+
     client = redis.Redis.from_url(redis_url, decode_responses=True)
     try:
         yield client
@@ -61,5 +64,6 @@ def redis_client(redis_url: str):
 
 def skip_if_no_auth_by_token(conn) -> None:
     from tape_service.db.probe import users_auth_by_token_present
+
     if not users_auth_by_token_present(conn):
         pytest.skip("users.auth_by_token not present in dev DB (apply docs/sql/04)")
