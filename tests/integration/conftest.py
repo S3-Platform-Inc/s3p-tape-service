@@ -23,15 +23,25 @@ def _init_scripts() -> list[Path]:
     return sorted(INIT_SCRIPTS_DIR.glob("*.sql"))
 
 
+def _split_simple_statements(sql: str) -> list[str]:
+    """Naive semicolon splitter — only safe for files WITHOUT $$ function
+    bodies (i.e. 1-roles.sql). For SQL that contains dollar-quoted blocks
+    use whole-file execute instead.
+    """
+    return [s.strip() for s in sql.split(";") if s.strip()]
+
+
 def _seed_database(dsn: str, scripts: list[Path]) -> None:
     """Execute s3p-database init-scripts in order.
 
     The scripts assume the bootstrap user is `sppadmin` and that two more
     roles (`spptgbot`, `s3pfunc`) exist. We start the container as
-    `sppadmin` and let `1-roles.sql` create the other two. Any
-    `CREATE ROLE sppadmin` line will raise DuplicateObject — we tolerate
-    that error class only and surface anything else as a warning so we
-    notice real DDL drift.
+    `sppadmin`; `1-roles.sql` then needs to create the other two. Because
+    `CREATE ROLE sppadmin` is the second statement in that file and
+    fails as DuplicateObject under libpq's stop-on-first-error semantics,
+    we execute `1-roles.sql` per-statement so the surrounding roles still
+    land. Other scripts contain function bodies (`$$ ... $$`) and must
+    run whole-file.
     """
     import psycopg
     from psycopg.errors import DuplicateObject
@@ -39,16 +49,23 @@ def _seed_database(dsn: str, scripts: list[Path]) -> None:
     with psycopg.connect(dsn, autocommit=True) as conn:
         for sql_file in scripts:
             sql = sql_file.read_text()
-            try:
-                conn.execute(sql)
-            except DuplicateObject as e:
-                log.warning("init-script %s: duplicate ignored: %s", sql_file.name, e)
-            except Exception as e:
-                log.warning(
-                    "init-script %s failed (%s: %s); dependent tests will skip "
-                    "via the schema probe if required objects are missing",
-                    sql_file.name, type(e).__name__, e,
-                )
+            stmts = (
+                _split_simple_statements(sql)
+                if sql_file.name == "1-roles.sql"
+                else [sql]
+            )
+            for stmt in stmts:
+                try:
+                    conn.execute(stmt)
+                except DuplicateObject as e:
+                    log.warning("init-script %s: duplicate ignored: %s",
+                                sql_file.name, e)
+                except Exception as e:
+                    log.warning(
+                        "init-script %s failed (%s: %s); dependent tests will "
+                        "skip via the schema probe if required objects are missing",
+                        sql_file.name, type(e).__name__, e,
+                    )
 
 
 @pytest.fixture(scope="session")
