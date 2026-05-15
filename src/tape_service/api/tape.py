@@ -26,8 +26,7 @@ def _filter_already_scored(conn, *, user_id: int, doc_ids: list[int]) -> set[int
         return set()
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT document_id FROM score.score "
-            "WHERE user_id = %s AND document_id = ANY(%s)",
+            "SELECT document_id FROM score.score WHERE user_id = %s AND document_id = ANY(%s)",
             (user_id, doc_ids),
         )
         return {int(r[0]) for r in cur.fetchall()}
@@ -57,17 +56,26 @@ def read_tape(
     cfg = tape_store.get_config(r, user_id=user.user_id)
     if cfg is None:
         return TapePage(
-            items=[], next_position=None, state="empty", display_mode="compact",
+            items=[],
+            next_position=None,
+            state="empty",
+            display_mode="compact",
         )
 
     rows = tape_store.list_entries_page(
-        r, user_id=user.user_id, after_position=after, limit=cfg.page_size,
+        r,
+        user_id=user.user_id,
+        after_position=after,
+        limit=cfg.page_size,
     )
     if not rows:
         total = tape_store.count_entries(r, user_id=user.user_id)
         state = "preparing" if total == 0 and cfg.dirty else "empty"
         return TapePage(
-            items=[], next_position=None, state=state, display_mode=cfg.display_mode,
+            items=[],
+            next_position=None,
+            state=state,
+            display_mode=cfg.display_mode,
         )
 
     doc_ids = [doc_id for (_pos, doc_id) in rows]
@@ -75,13 +83,15 @@ def read_tape(
         conn.autocommit = True
         docs = fetch_by_ids(conn, ids=doc_ids)
         already_scored = _filter_already_scored(
-            conn, user_id=user.user_id, doc_ids=doc_ids,
+            conn,
+            user_id=user.user_id,
+            doc_ids=doc_ids,
         )
-        source_ids = {
-            docs[d].sourceid for d in doc_ids if d in docs and d not in already_scored
-        }
+        source_ids = {docs[d].sourceid for d in doc_ids if d in docs and d not in already_scored}
         roles_by_src = _roles_by_source(
-            conn, user_id=user.user_id, source_ids=source_ids,
+            conn,
+            user_id=user.user_id,
+            source_ids=source_ids,
         )
 
     items: list[TapeItem] = []
@@ -104,12 +114,14 @@ def read_tape(
         )
         # entry_id isn't carried in Redis sorted sets (members are doc ids);
         # expose position as the stable list key for the frontend.
-        items.append(TapeItem(
-            entry_id=position,
-            position=position,
-            document=td,
-            roles=roles_by_src.get(d.sourceid, []),
-        ))
+        items.append(
+            TapeItem(
+                entry_id=position,
+                position=position,
+                document=td,
+                roles=roles_by_src.get(d.sourceid, []),
+            )
+        )
 
     next_position = rows[-1][0] if len(rows) == cfg.page_size else None
     return TapePage(
@@ -122,7 +134,8 @@ def read_tape(
 
 @router.post("/score")
 def submit_score(
-    payload: ScoreRequest, user: CurrentUser = Depends(current_user),
+    payload: ScoreRequest,
+    user: CurrentUser = Depends(current_user),
 ) -> dict:
     try:
         with get_pool().connection() as conn:
@@ -144,6 +157,8 @@ def submit_score(
     # Inline tape cleanup — no waiting on the LISTEN thread for the web path.
     # The listener is still the safety net for non-web score paths.
     tape_store.remove_entry(
-        get_redis(), user_id=user.user_id, document_id=payload.document_id,
+        get_redis(),
+        user_id=user.user_id,
+        document_id=payload.document_id,
     )
     return {"score_id": score_id}

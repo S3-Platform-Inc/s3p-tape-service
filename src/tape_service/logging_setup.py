@@ -7,12 +7,31 @@ from typing import Any
 
 _SECRET_KEYS = re.compile(r"(token|secret|password|cookie|authorization|session_hash)", re.I)
 
-_STD_ATTRS = frozenset({
-    "args", "msg", "levelname", "name", "exc_info", "exc_text", "stack_info",
-    "lineno", "funcName", "created", "msecs", "relativeCreated", "thread",
-    "threadName", "processName", "process", "pathname", "filename", "module",
-    "levelno", "taskName",
-})
+_STD_ATTRS = frozenset(
+    {
+        "args",
+        "msg",
+        "levelname",
+        "name",
+        "exc_info",
+        "exc_text",
+        "stack_info",
+        "lineno",
+        "funcName",
+        "created",
+        "msecs",
+        "relativeCreated",
+        "thread",
+        "threadName",
+        "processName",
+        "process",
+        "pathname",
+        "filename",
+        "module",
+        "levelno",
+        "taskName",
+    }
+)
 
 
 class JsonFormatter(logging.Formatter):

@@ -46,14 +46,23 @@ def test_score_unauthorized(client):
 
 def test_score_happy_path_removes_tape_entry(client, clean_alpha, redis_client):
     append_entries(
-        redis_client, user_id=1, doc_ids=[1, 2, 3], run_id=0, start_position=0,
+        redis_client,
+        user_id=1,
+        doc_ids=[1, 2, 3],
+        run_id=0,
+        start_position=0,
     )
     assert count_entries(redis_client, user_id=1) == 3
 
     _login(client)
-    r = client.post("/score", json={
-        "document_id": 1, "role_id": 1, "verdict": "yes",
-    })
+    r = client.post(
+        "/score",
+        json={
+            "document_id": 1,
+            "role_id": 1,
+            "verdict": "yes",
+        },
+    )
     assert r.status_code == 200, r.text
     assert isinstance(r.json()["score_id"], int)
     assert count_entries(redis_client, user_id=1) == 2
@@ -71,16 +80,26 @@ def test_score_duplicate_returns_already_scored(client, clean_alpha):
 
 def test_score_validation_rejects_unknown_verdict(client, clean_alpha):
     _login(client)
-    r = client.post("/score", json={
-        "document_id": 1, "role_id": 1, "verdict": "maybe",
-    })
+    r = client.post(
+        "/score",
+        json={
+            "document_id": 1,
+            "role_id": 1,
+            "verdict": "maybe",
+        },
+    )
     assert r.status_code == 422
 
 
 def test_score_accepts_optional_comment(client, clean_alpha):
     _login(client)
-    r = client.post("/score", json={
-        "document_id": 1, "role_id": 1, "verdict": "unsure",
-        "comment": "leaning unsure, second pass needed",
-    })
+    r = client.post(
+        "/score",
+        json={
+            "document_id": 1,
+            "role_id": 1,
+            "verdict": "unsure",
+            "comment": "leaning unsure, second pass needed",
+        },
+    )
     assert r.status_code == 200, r.text

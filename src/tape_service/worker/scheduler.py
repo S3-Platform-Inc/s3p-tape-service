@@ -22,12 +22,17 @@ def build_scheduler() -> BlockingScheduler:
     s = get_settings()
     sched = BlockingScheduler(timezone="UTC")
     sched.add_job(
-        heartbeat, "interval",
-        seconds=s.worker_interval_seconds, id="heartbeat",
+        heartbeat,
+        "interval",
+        seconds=s.worker_interval_seconds,
+        id="heartbeat",
     )
     sched.add_job(
-        generator_job, "interval",
-        seconds=s.worker_interval_seconds, id="generator",
-        max_instances=1, coalesce=True,
+        generator_job,
+        "interval",
+        seconds=s.worker_interval_seconds,
+        id="generator",
+        max_instances=1,
+        coalesce=True,
     )
     return sched

@@ -52,8 +52,8 @@ def sources_for(conn: Connection, *, user_id: int) -> list[int]:
 
 def roles_for(conn: Connection, *, user_id: int, source_id: int | None = None) -> list[int]:
     """users.roles overloads:
-        users.roles(_id integer)             -> integer[]
-        users.roles(_uid integer, _sid int)  -> SETOF (role row)
+    users.roles(_id integer)             -> integer[]
+    users.roles(_uid integer, _sid int)  -> SETOF (role row)
     """
     with conn.cursor() as cur:
         if source_id is None:

@@ -28,6 +28,7 @@ def _pools(pg_dsn, redis_url, monkeypatch):
     monkeypatch.setenv("SESSION_SECRET", "x" * 40)
     from tape_service.db.pool import close_pool, open_pool
     from tape_service.settings import get_settings
+
     get_settings.cache_clear()
     open_pool()
     open_redis()
@@ -46,9 +47,13 @@ def clean_alpha(redis_client, pg_dsn):
 
 def test_full_rebuild_populates_tape(redis_client, clean_alpha):
     upsert_config(
-        redis_client, user_id=1,
-        ordering="asc", display_mode="compact", page_size=20,
-        date_from=None, date_to=None,
+        redis_client,
+        user_id=1,
+        ordering="asc",
+        display_mode="compact",
+        page_size=20,
+        date_from=None,
+        date_to=None,
     )
     set_config_sources(redis_client, user_id=1, source_ids=[1, 2])
 
@@ -65,15 +70,22 @@ def test_full_rebuild_populates_tape(redis_client, clean_alpha):
 
 def test_incremental_appends_new_docs(redis_client, clean_alpha):
     upsert_config(
-        redis_client, user_id=1,
-        ordering="asc", display_mode="compact", page_size=20,
-        date_from=None, date_to=None,
+        redis_client,
+        user_id=1,
+        ordering="asc",
+        display_mode="compact",
+        page_size=20,
+        date_from=None,
+        date_to=None,
     )
     set_config_sources(redis_client, user_id=1, source_ids=[1, 2])
     # Pre-seed first 3 docs at positions 0..2 so the next pass appends 2 more.
     append_entries(
-        redis_client, user_id=1,
-        doc_ids=[1, 2, 3], run_id=0, start_position=0,
+        redis_client,
+        user_id=1,
+        doc_ids=[1, 2, 3],
+        run_id=0,
+        start_position=0,
     )
     clear_dirty(redis_client, user_id=1)
 
@@ -85,9 +97,13 @@ def test_incremental_appends_new_docs(redis_client, clean_alpha):
 
 def test_no_sources_returns_skipped(redis_client, clean_alpha):
     upsert_config(
-        redis_client, user_id=1,
-        ordering="desc", display_mode="compact", page_size=20,
-        date_from=None, date_to=None,
+        redis_client,
+        user_id=1,
+        ordering="desc",
+        display_mode="compact",
+        page_size=20,
+        date_from=None,
+        date_to=None,
     )
     set_config_sources(redis_client, user_id=1, source_ids=[])
     kind, added = generate_for_user(r=redis_client, user_id=1, dirty=True)
@@ -97,9 +113,13 @@ def test_no_sources_returns_skipped(redis_client, clean_alpha):
 
 def test_tick_processes_known_users(redis_client, clean_alpha):
     upsert_config(
-        redis_client, user_id=1,
-        ordering="desc", display_mode="compact", page_size=20,
-        date_from=None, date_to=None,
+        redis_client,
+        user_id=1,
+        ordering="desc",
+        display_mode="compact",
+        page_size=20,
+        date_from=None,
+        date_to=None,
     )
     set_config_sources(redis_client, user_id=1, source_ids=[1])
     tick()

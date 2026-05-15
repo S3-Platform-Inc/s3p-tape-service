@@ -48,7 +48,10 @@ def generate_for_user(
             else:
                 start = tape_store.max_position(r, user_id=user_id) + 1
                 page = tape_store.list_entries_page(
-                    r, user_id=user_id, after_position=None, limit=10_000,
+                    r,
+                    user_id=user_id,
+                    after_position=None,
+                    limit=10_000,
                 )
                 existing = [doc_id for (_pos, doc_id) in page]
 
@@ -74,21 +77,31 @@ def generate_for_user(
             if dirty:
                 tape_store.clear_dirty(r, user_id=user_id)
             tape_store.finish_run(
-                r, user_id=user_id, run_id=run_id,
-                status="ok", added=added, removed=removed,
+                r,
+                user_id=user_id,
+                run_id=run_id,
+                status="ok",
+                added=added,
+                removed=removed,
             )
             log.info(
                 "worker.generate.ok",
                 extra={
-                    "user_id": user_id, "kind": kind,
-                    "added": added, "removed": removed,
+                    "user_id": user_id,
+                    "kind": kind,
+                    "added": added,
+                    "removed": removed,
                 },
             )
             return (kind, added)
         except Exception:
             tape_store.finish_run(
-                r, user_id=user_id, run_id=run_id,
-                status="error", added=0, removed=removed,
+                r,
+                user_id=user_id,
+                run_id=run_id,
+                status="error",
+                added=0,
+                removed=removed,
             )
             log.exception("worker.generate.error", extra={"user_id": user_id})
             raise

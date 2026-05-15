@@ -12,6 +12,7 @@ def settings_env(pg_dsn: str, redis_url: str):
     os.environ["SESSION_COOKIE_SECURE"] = "false"
     # Reset the lru_cache so a new Settings reads the just-set env.
     from tape_service.settings import get_settings
+
     get_settings.cache_clear()
     yield
 
@@ -19,6 +20,7 @@ def settings_env(pg_dsn: str, redis_url: str):
 @pytest.fixture(scope="session")
 def app(settings_env):
     from tape_service.main import create_app
+
     return create_app()
 
 

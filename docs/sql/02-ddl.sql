@@ -1719,4 +1719,3 @@ BEGIN
         GROUP BY rd.sphere;
 END;
 $$;
-

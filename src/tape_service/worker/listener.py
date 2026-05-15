@@ -35,7 +35,9 @@ class ScoreNotifyListener:
             return
         self._stop.clear()
         self._thread = threading.Thread(
-            target=self._run, name="tape-score-listener", daemon=True,
+            target=self._run,
+            name="tape-score-listener",
+            daemon=True,
         )
         self._thread.start()
 
@@ -81,7 +83,9 @@ class ScoreNotifyListener:
             return
         try:
             removed = tape_store.remove_entry(
-                get_redis(), user_id=user_id, document_id=doc_id,
+                get_redis(),
+                user_id=user_id,
+                document_id=doc_id,
             )
             log.info(
                 "worker.listener.removed",

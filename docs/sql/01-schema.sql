@@ -31,4 +31,3 @@ create schema score;
 comment on schema score is 'schema for scoring process';
 
 create schema users;
-
