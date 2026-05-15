@@ -12,6 +12,7 @@ dependencies = [
     "pydantic-settings>=2.5",
     "python-dotenv>=1.0",
     "apscheduler>=3.10,<4",
+    "redis>=5",
     "s3p-sdk>=0.2.13",
 ]
 
@@ -43,6 +44,10 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "RUF", "S"]
 ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+# Test seed tokens are public dev-only literals; not real secrets.
+"tests/**" = ["S105", "S106"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

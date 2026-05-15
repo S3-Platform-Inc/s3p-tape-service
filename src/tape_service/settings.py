@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field, PostgresDsn, field_validator
+from pydantic import Field, PostgresDsn, RedisDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     database_url: PostgresDsn = Field(...)
     db_pool_min_size: int = 1
     db_pool_max_size: int = 10
+
+    redis_url: RedisDsn = Field(...)
+    redis_max_connections: int = 20
 
     session_secret: str = Field(..., min_length=32)
     session_cookie_name: str = "s3p_session"
@@ -22,7 +25,7 @@ class Settings(BaseSettings):
     login_rate_limit_window_seconds: int = 300
 
     worker_interval_seconds: int = 60
-    worker_advisory_lock_namespace: int = 4242
+    worker_advisory_lock_ttl_seconds: int = 600
 
     log_level: str = "INFO"
 

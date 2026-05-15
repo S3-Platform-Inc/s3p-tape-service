@@ -5,8 +5,9 @@ from fastapi.testclient import TestClient
 
 
 @pytest.fixture(scope="session")
-def settings_env(pg_dsn: str):
+def settings_env(pg_dsn: str, redis_url: str):
     os.environ["DATABASE_URL"] = pg_dsn
+    os.environ["REDIS_URL"] = redis_url
     os.environ["SESSION_SECRET"] = "x" * 40
     os.environ["SESSION_COOKIE_SECURE"] = "false"
     # Reset the lru_cache so a new Settings reads the just-set env.
