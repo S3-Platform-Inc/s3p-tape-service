@@ -38,7 +38,7 @@ on conflict do nothing;
 -- recomputes at lookup time.
 insert into users."user" (id, name, privilege, auth) values
     (1, 'Alpha Expert',
-        '{"expert": true, "roles": ["expert"]}'::json,
+        '{"bot": ["expert"]}'::json,
         json_build_object('token_hash',
             encode(digest('expert-alpha-token-XXXXXXXXXXXXXXXX', 'sha256'), 'hex'))),
     (2, 'Bravo Expert',
