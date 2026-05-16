@@ -1,3 +1,11 @@
+## [1.0.2](https://github.com/S3-Platform-Inc/s3p-tape-service/compare/v1.0.1...v1.0.2) (2026-05-16)
+
+### Bug Fixes
+
+* **tests:** honor REDIS_PASSWORD from env/.env in integration conftest ([e1fd92b](https://github.com/S3-Platform-Inc/s3p-tape-service/commit/e1fd92b7632c8f3e26d4948cec7d52f826a00574))
+* **tests:** improve database URL handling with clearer formatting ([1a3f18d](https://github.com/S3-Platform-Inc/s3p-tape-service/commit/1a3f18dd51d6bcce9d88e1cc86b97726002fce93))
+* update user privileges to use 'bot' key and enhance database URL handling in tests ([9611757](https://github.com/S3-Platform-Inc/s3p-tape-service/commit/9611757ff1258817334dcfb9dc6a4255c2e4fac5))
+
 ## [1.0.1](https://github.com/S3-Platform-Inc/s3p-tape-service/compare/v1.0.0...v1.0.1) (2026-05-15)
 
 ### Bug Fixes
