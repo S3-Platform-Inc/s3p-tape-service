@@ -43,7 +43,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://sppadmin:devpass@pg:5432/s3p
+      DATABASE_URL: ${DATABASE_URL:-postgresql://sppadmin:devpass@pg:5432/s3p}
       REDIS_URL: redis://:${REDIS_PASSWORD:-devredis}@redis:6379/0
       SESSION_SECRET: ${SESSION_SECRET:-dev-dev-dev-dev-dev-dev-dev-dev-dev-dev}
       SESSION_COOKIE_SECURE: "false"
@@ -58,7 +58,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://sppadmin:devpass@pg:5432/s3p
+      DATABASE_URL: ${DATABASE_URL:-postgresql://sppadmin:devpass@pg:5432/s3p}
       REDIS_URL: redis://:${REDIS_PASSWORD:-devredis}@redis:6379/0
       SESSION_SECRET: ${SESSION_SECRET:-dev-dev-dev-dev-dev-dev-dev-dev-dev-dev}
       LOG_LEVEL: INFO

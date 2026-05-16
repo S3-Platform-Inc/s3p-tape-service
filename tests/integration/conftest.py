@@ -1,16 +1,41 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import pytest
+from dotenv import dotenv_values
 
 # Integration tests target the already-running dev compose stack:
 #   docker compose up -d pg redis
 # The DSN/URL defaults match compose.yaml's host ports + dev credentials.
 # Override via env if your local stack uses different ports or credentials.
 
-DEFAULT_DATABASE_URL = "postgresql://sppadmin:devpass@localhost:15432/s3p"
-DEFAULT_REDIS_URL = "redis://:devredis@localhost:6379/0"
+
+def _default_database_url() -> str:
+    # docker compose reads REDIS_PASSWORD from the repo's .env to start redis
+    # with --requirepass. Mirror that here so tests don't silently skip when
+    # the stack runs with a non-default password. DATABASE_URL in .env is
+    # intentionally NOT consumed — it may point at a remote DB.
+    repo_env = Path(__file__).resolve().parents[2] / ".env"
+    file_database_url = dotenv_values(repo_env).get("DATABASE_URL") if repo_env.exists() else None
+    database_url = (
+        os.environ.get("DATABASE_URL")
+        or file_database_url
+        or "postgresql://sppadmin:devpass@localhost:15432/s3p"
+    )
+    return database_url
+
+
+def _default_redis_url() -> str:
+    # docker compose reads REDIS_PASSWORD from the repo's .env to start redis
+    # with --requirepass. Mirror that here so tests don't silently skip when
+    # the stack runs with a non-default password. DATABASE_URL in .env is
+    # intentionally NOT consumed — it may point at a remote DB.
+    repo_env = Path(__file__).resolve().parents[2] / ".env"
+    file_password = dotenv_values(repo_env).get("REDIS_PASSWORD") if repo_env.exists() else None
+    password = os.environ.get("REDIS_PASSWORD") or file_password or "devredis"
+    return f"redis://:{password}@localhost:6379/0"
 
 
 @pytest.fixture(scope="session")
@@ -23,7 +48,7 @@ def pg_dsn() -> str:
     """
     import psycopg
 
-    dsn = os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL)
+    dsn = _default_database_url()
     try:
         with psycopg.connect(dsn, connect_timeout=2) as conn:
             with conn.cursor() as cur:
@@ -39,7 +64,7 @@ def redis_url() -> str:
     """Yield the dev Redis URL, or skip if Redis isn't reachable."""
     import redis
 
-    url = os.environ.get("REDIS_URL", DEFAULT_REDIS_URL)
+    url = os.environ.get("REDIS_URL") or _default_redis_url()
     try:
         client = redis.Redis.from_url(url, socket_connect_timeout=2)
         client.ping()

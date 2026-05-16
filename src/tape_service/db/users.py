@@ -18,7 +18,7 @@ class AuthedUser:
         if isinstance(priv, dict):
             if priv.get("expert") is True:
                 return True
-            roles = priv.get("roles")
+            roles = priv.get("bot")
             if isinstance(roles, list) and "expert" in roles:
                 return True
         if isinstance(priv, list):
