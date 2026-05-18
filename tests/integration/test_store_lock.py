@@ -26,3 +26,11 @@ def test_lock_keys_are_scoped_per_user(redis_client):
         assert a is True
         with per_user_lock(redis_client, user_id=9004) as b:
             assert b is True
+
+
+def test_is_locked_reflects_lock_state(redis_client):
+    assert is_locked(redis_client, user_id=9005) is False
+    with per_user_lock(redis_client, user_id=9005) as got:
+        assert got is True
+        assert is_locked(redis_client, user_id=9005) is True
+    assert is_locked(redis_client, user_id=9005) is False
