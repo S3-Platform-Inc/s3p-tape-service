@@ -1,6 +1,6 @@
 import pytest
 
-from tape_service.store.lock import per_user_lock
+from tape_service.store.lock import is_locked, per_user_lock
 
 pytestmark = pytest.mark.integration
 
