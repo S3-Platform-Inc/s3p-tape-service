@@ -6,6 +6,7 @@ import redis
 
 from ..db import get_pool
 from ..db.candidates import candidates_for_user
+from ..store import events
 from ..store import get_redis
 from ..store import tape as tape_store
 from ..store.lock import per_user_lock
@@ -37,8 +38,14 @@ def generate_for_user(
             log.info("worker.generate.skip_locked", extra={"user_id": user_id})
             return ("skipped", 0)
 
+        events.publish(r, user_id=user_id, event=events.make_lock_acquired(user_id))
         kind = "full" if dirty else "incremental"
         run_id = tape_store.create_run(r, user_id=user_id, kind=kind)
+        events.publish(
+            r,
+            user_id=user_id,
+            event=events.make_schedule_started(user_id, run_id, kind),
+        )
         removed = 0
         try:
             if dirty:
@@ -74,6 +81,12 @@ def generate_for_user(
                 run_id=run_id,
                 start_position=start,
             )
+            for position, doc_id in appended:
+                events.publish(
+                    r,
+                    user_id=user_id,
+                    event=events.make_tape_entry_added(user_id, position, doc_id),
+                )
             added = len(appended)
             if dirty:
                 tape_store.clear_dirty(r, user_id=user_id)
@@ -84,6 +97,16 @@ def generate_for_user(
                 status="ok",
                 added=added,
                 removed=removed,
+            )
+            events.publish(
+                r,
+                user_id=user_id,
+                event=events.make_tape_regenerated(user_id, kind, added, removed),
+            )
+            events.publish(
+                r,
+                user_id=user_id,
+                event=events.make_schedule_completed(user_id, run_id, "ok"),
             )
             log.info(
                 "worker.generate.ok",
@@ -104,8 +127,24 @@ def generate_for_user(
                 added=0,
                 removed=removed,
             )
+            events.publish(
+                r,
+                user_id=user_id,
+                event=events.make_tape_regenerated(user_id, kind, 0, removed),
+            )
+            events.publish(
+                r,
+                user_id=user_id,
+                event=events.make_schedule_completed(user_id, run_id, "error"),
+            )
             log.exception("worker.generate.error", extra={"user_id": user_id})
             raise
+        finally:
+            events.publish(
+                r,
+                user_id=user_id,
+                event=events.make_lock_released(user_id),
+            )
 
 
 def tick() -> None:
