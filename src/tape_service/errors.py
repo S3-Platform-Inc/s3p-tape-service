@@ -15,6 +15,7 @@ class ErrorCode(Enum):
     ALREADY_SCORED = (409, "ALREADY_SCORED")
     RATE_LIMITED = (429, "RATE_LIMITED")
     TAPE_PREPARING = (503, "TAPE_PREPARING")
+    TAPE_LOCKED = (409, "TAPE_LOCKED")
     INTERNAL = (500, "INTERNAL")
 
     def __init__(self, status: int, code: str) -> None:
