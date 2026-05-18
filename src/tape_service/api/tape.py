@@ -13,6 +13,7 @@ from ..errors import ApiError, ErrorCode
 from ..schemas.score import ScoreRequest
 from ..schemas.tape import RoleRef, TapeDocument, TapeItem, TapePage
 from ..store import get_redis
+from ..store import lock as lock_store
 from ..store import tape as tape_store
 
 router = APIRouter()
@@ -53,6 +54,8 @@ def read_tape(
     user: CurrentUser = Depends(current_user),
 ) -> TapePage:
     r = get_redis()
+    if lock_store.is_locked(r, user_id=user.user_id):
+        raise ApiError(ErrorCode.TAPE_LOCKED, "tape is regenerating")
     cfg = tape_store.get_config(r, user_id=user.user_id)
     if cfg is None:
         return TapePage(
