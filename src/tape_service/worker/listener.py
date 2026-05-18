@@ -7,7 +7,7 @@ import threading
 import psycopg
 
 from ..settings import get_settings
-from ..store import get_redis
+from ..store import events, get_redis
 from ..store import tape as tape_store
 
 log = logging.getLogger(__name__)
@@ -82,11 +82,18 @@ class ScoreNotifyListener:
             log.warning("worker.listener.bad_payload", extra={"raw": payload[:200]})
             return
         try:
+            r = get_redis()
             removed = tape_store.remove_entry(
-                get_redis(),
+                r,
                 user_id=user_id,
                 document_id=doc_id,
             )
+            if removed:
+                events.publish(
+                    r,
+                    user_id=user_id,
+                    event=events.make_tape_entry_removed(user_id, doc_id),
+                )
             log.info(
                 "worker.listener.removed",
                 extra={"user_id": user_id, "document_id": doc_id, "removed": removed},
