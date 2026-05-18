@@ -1,3 +1,9 @@
+## [1.0.3](https://github.com/S3-Platform-Inc/s3p-tape-service/compare/v1.0.2...v1.0.3) (2026-05-18)
+
+### Bug Fixes
+
+* **docker:** update service images to use GitHub Container Registry and enhance session cookie configuration ([7e2129f](https://github.com/S3-Platform-Inc/s3p-tape-service/commit/7e2129ffa10347ab8d7c217f687e966b779c2617))
+
 ## [1.0.2](https://github.com/S3-Platform-Inc/s3p-tape-service/compare/v1.0.1...v1.0.2) (2026-05-16)
 
 ### Bug Fixes
