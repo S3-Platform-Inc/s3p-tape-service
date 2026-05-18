@@ -8,8 +8,7 @@ from ..db.sources import fetch_names_by_ids
 from ..db.users import sources_for
 from ..errors import ApiError, ErrorCode
 from ..schemas.config import ConfigResponse, ConfigUpdate, SourceRef
-from ..store import events
-from ..store import get_redis
+from ..store import events, get_redis
 from ..store import tape as tape_store
 
 router = APIRouter(prefix="/config")

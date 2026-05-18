@@ -12,8 +12,7 @@ from ..db.users import roles_for
 from ..errors import ApiError, ErrorCode
 from ..schemas.score import ScoreRequest
 from ..schemas.tape import RoleRef, TapeDocument, TapeItem, TapePage
-from ..store import events
-from ..store import get_redis
+from ..store import events, get_redis
 from ..store import lock as lock_store
 from ..store import tape as tape_store
 
@@ -102,7 +101,17 @@ def read_tape(
     for position, doc_id in rows:
         if doc_id in already_scored:
             # The listener may not have caught up yet; safety-filter the page.
-            tape_store.remove_entry(r, user_id=user.user_id, document_id=doc_id)
+            removed = tape_store.remove_entry(
+                r,
+                user_id=user.user_id,
+                document_id=doc_id,
+            )
+            if removed:
+                events.publish(
+                    r,
+                    user_id=user.user_id,
+                    event=events.make_tape_entry_removed(user.user_id, doc_id),
+                )
             continue
         d = docs.get(doc_id)
         if d is None:

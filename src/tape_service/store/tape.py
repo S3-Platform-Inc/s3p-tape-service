@@ -181,11 +181,7 @@ def append_entries(
         pipe.zadd(key, {str(doc_id): start_position + i}, nx=True)
     results = pipe.execute()
     _ = run_id  # tracked in tape.run; entries themselves carry only position
-    return [
-        (start_position + i, int(doc_ids[i]))
-        for i, r in enumerate(results)
-        if int(r) == 1
-    ]
+    return [(start_position + i, int(doc_ids[i])) for i, r in enumerate(results) if int(r) == 1]
 
 
 def remove_entry(client: redis.Redis, *, user_id: int, document_id: int) -> int:

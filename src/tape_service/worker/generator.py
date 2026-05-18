@@ -6,8 +6,7 @@ import redis
 
 from ..db import get_pool
 from ..db.candidates import candidates_for_user
-from ..store import events
-from ..store import get_redis
+from ..store import events, get_redis
 from ..store import tape as tape_store
 from ..store.lock import per_user_lock
 
