@@ -35,7 +35,7 @@ services:
     networks: [internal]
 
   api:
-    image: s3p-tape-service:${TAG:-latest}
+    image: ghcr.io/s3-platform-inc/s3p-tape-service:${TAG:-latest}
     depends_on:
       redis:
         condition: service_healthy
@@ -43,7 +43,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:?required}
       REDIS_URL: ${REDIS_URL:?required}
       SESSION_SECRET: ${SESSION_SECRET:?required}
-      SESSION_COOKIE_SECURE: "true"
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-"true"}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     healthcheck:
       test:
@@ -56,9 +56,11 @@ services:
       retries: 5
     restart: unless-stopped
     networks: [internal]
+    ports:
+      - 8000:8000
 
   worker:
-    image: s3p-tape-service:${TAG:-latest}
+    image: ghcr.io/s3-platform-inc/s3p-tape-service:${TAG:-latest}
     command: ["python", "-m", "tape_service.worker_entry"]
     depends_on:
       redis:
