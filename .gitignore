@@ -476,7 +476,8 @@ build/
 
 # Env
 .env
-.env.local
+.env.local*
+.env.dev*
 
 # macOS
 .DS_Store

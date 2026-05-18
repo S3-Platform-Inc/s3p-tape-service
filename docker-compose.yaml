@@ -1,0 +1,56 @@
+# Production compose overlay.
+#
+# Differences from compose.yaml (dev):
+#   - api/worker use the pre-built image, not `build: .`
+#   - pg is NOT included — production uses the platform's existing
+#     s3p-database; only DATABASE_URL is wired through.
+#   - redis uses requirepass + AOF and is on the internal network only.
+#   - secrets are required (?required); no dev fallbacks.
+#   - restart: unless-stopped on every long-lived service.
+#
+# Usage:
+#   TAG=v0.1.0 \
+#   DATABASE_URL=postgresql://user:pw@db.internal:5432/s3p \
+#   REDIS_PASSWORD=$(openssl rand -hex 32) \
+#   REDIS_URL=redis://:$REDIS_PASSWORD@redis:6379/0 \
+#   SESSION_SECRET=$(openssl rand -hex 32) \
+#   docker compose -f compose.prod.yaml up -d
+
+services:
+  api:
+    image: ghcr.io/s3-platform-inc/s3p-tape-service:${TAG:-latest}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?required}
+      REDIS_URL: ${REDIS_URL:?required}
+      SESSION_SECRET: ${SESSION_SECRET:?required}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    healthcheck:
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - "import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health',timeout=2).status==200 else 1)"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks: [internal]
+    ports:
+      - 8000:8000
+
+  worker:
+    image: ghcr.io/s3-platform-inc/s3p-tape-service:${TAG:-latest}
+    command: ["python", "-m", "tape_service.worker_entry"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?required}
+      REDIS_URL: ${REDIS_URL:?required}
+      SESSION_SECRET: ${SESSION_SECRET:?required}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      WORKER_INTERVAL_SECONDS: ${WORKER_INTERVAL_SECONDS:-60}
+    restart: unless-stopped
+    networks: [internal]
+
+networks:
+  internal:
+    driver: bridge

@@ -59,13 +59,14 @@ def test_full_rebuild_populates_tape(redis_client, clean_alpha):
 
     kind, added = generate_for_user(r=redis_client, user_id=1, dirty=True)
     assert kind == "full"
-    assert added == 5
-    assert count_entries(redis_client, user_id=1) == 5
+    assert added == 7
+    assert count_entries(redis_client, user_id=1) == 7
 
     page = list_entries_page(redis_client, user_id=1, after_position=None, limit=10)
     doc_ids = [d for (_p, d) in page]
-    # ASC by published → seed timestamps 2026-05-01..05-10 sort 1,2,3,4,5.
-    assert doc_ids == [1, 2, 3, 4, 5]
+    # ASC by published over sources {1, 2}: doc 1 (05-01), 2 (05-03),
+    # 3 (05-05), 4 (05-08), 5 (05-10), 14 (05-15), 15 (05-16).
+    assert doc_ids == [1, 2, 3, 4, 5, 14, 15]
 
 
 def test_incremental_appends_new_docs(redis_client, clean_alpha):
@@ -91,8 +92,10 @@ def test_incremental_appends_new_docs(redis_client, clean_alpha):
 
     kind, added = generate_for_user(r=redis_client, user_id=1, dirty=False)
     assert kind == "incremental"
-    assert added == 2
-    assert count_entries(redis_client, user_id=1) == 5
+    # Sources {1, 2} own docs {1, 2, 3, 4, 5, 14, 15}; minus the
+    # pre-seeded {1, 2, 3} that leaves 4 new ones: {4, 5, 14, 15}.
+    assert added == 4
+    assert count_entries(redis_client, user_id=1) == 7
 
 
 def test_no_sources_returns_skipped(redis_client, clean_alpha):
@@ -123,5 +126,5 @@ def test_tick_processes_known_users(redis_client, clean_alpha):
     )
     set_config_sources(redis_client, user_id=1, source_ids=[1])
     tick()
-    # Source 1 owns 3 of the 5 seed documents (ids 1, 2, 5).
-    assert count_entries(redis_client, user_id=1) == 3
+    # Source 1 owns 4 seed documents (ids 1, 2, 5, 15).
+    assert count_entries(redis_client, user_id=1) == 4
