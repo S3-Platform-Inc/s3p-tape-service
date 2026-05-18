@@ -167,18 +167,25 @@ def append_entries(
     doc_ids: list[int],
     run_id: int,
     start_position: int,
-) -> int:
+) -> list[tuple[int, int]]:
     """Append docs to the user's tape with positions starting at `start_position`.
-    Existing (user, doc) pairs are skipped — sorted-set members are unique."""
+    Existing (user, doc) pairs are skipped — sorted-set members are unique.
+
+    Returns the list of (position, doc_id) pairs that were actually added,
+    in submission order. Callers needing just the count use `len(...)`."""
     if not doc_ids:
-        return 0
+        return []
     key = entries_key(user_id)
     pipe = client.pipeline(transaction=False)
     for i, doc_id in enumerate(doc_ids):
         pipe.zadd(key, {str(doc_id): start_position + i}, nx=True)
     results = pipe.execute()
     _ = run_id  # tracked in tape.run; entries themselves carry only position
-    return sum(int(r) for r in results)
+    return [
+        (start_position + i, int(doc_ids[i]))
+        for i, r in enumerate(results)
+        if int(r) == 1
+    ]
 
 
 def remove_entry(client: redis.Redis, *, user_id: int, document_id: int) -> int:

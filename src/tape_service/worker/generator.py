@@ -67,13 +67,14 @@ def generate_for_user(
                     exclude_ids=existing,
                 )
 
-            added = tape_store.append_entries(
+            appended = tape_store.append_entries(
                 r,
                 user_id=user_id,
                 doc_ids=doc_ids,
                 run_id=run_id,
                 start_position=start,
             )
+            added = len(appended)
             if dirty:
                 tape_store.clear_dirty(r, user_id=user_id)
             tape_store.finish_run(

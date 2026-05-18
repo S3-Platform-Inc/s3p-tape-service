@@ -89,14 +89,14 @@ def test_clear_dirty(redis_client, cleanup):
 
 
 def test_append_entries_and_paging(redis_client, cleanup):
-    n = append_entries(
+    rows = append_entries(
         redis_client,
         user_id=9205,
         doc_ids=[101, 102, 103, 104, 105],
         run_id=1,
         start_position=0,
     )
-    assert n == 5
+    assert rows == [(0, 101), (1, 102), (2, 103), (3, 104), (4, 105)]
     assert count_entries(redis_client, user_id=9205) == 5
     assert max_position(redis_client, user_id=9205) == 4
 
@@ -115,14 +115,15 @@ def test_append_entries_skips_existing(redis_client, cleanup):
         run_id=1,
         start_position=0,
     )
-    n = append_entries(
+    rows = append_entries(
         redis_client,
         user_id=9206,
         doc_ids=[2, 3, 4],
         run_id=2,
         start_position=3,
     )
-    assert n == 1
+    # Only doc_id 4 is new; 2 and 3 already exist (sorted-set NX skip).
+    assert rows == [(5, 4)]
     assert count_entries(redis_client, user_id=9206) == 4
 
 
