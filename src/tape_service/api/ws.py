@@ -7,7 +7,6 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from ..settings import get_settings
 from ..store import sessions
 from ..store.async_client import get_async_redis
-from ..store.client import get_redis
 from ..store.events import channel_for
 
 log = logging.getLogger(__name__)
@@ -32,14 +31,14 @@ async def ws_endpoint(ws: WebSocket) -> None:
     """
     s = get_settings()
     raw = ws.cookies.get(s.session_cookie_name)
-    sess = sessions.validate(get_redis(), raw_session=raw) if raw else None
+    ar = get_async_redis()
+    sess = await sessions.validate_async(ar, raw_session=raw) if raw else None
     if sess is None:
         await ws.close(code=_CLOSE_UNAUTHORIZED)
         return
 
     await ws.accept()
     channel = channel_for(sess.user_id)
-    ar = get_async_redis()
     pubsub = ar.pubsub()
     try:
         await pubsub.subscribe(channel)
