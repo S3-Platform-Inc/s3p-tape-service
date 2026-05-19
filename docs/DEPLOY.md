@@ -156,17 +156,20 @@ hatch and works without a PAT.
   - on PR → `pr-<N>`, `sha-<short>` (not pushed)
 - **`.github/workflows/deploy.yml`** — SSHes into the stage VPS,
   rsyncs `docker-compose.yaml` (same file used in prod), writes
-  `/opt/tape/.env` (mode 600) from Environment secrets, runs
+  `/opt/tape/.env` (mode 600) from repository Actions secrets, runs
   `docker compose pull && up -d --remove-orphans`, then polls
   `/health` for up to 2 minutes. Triggers: `repository_dispatch:
   released` (auto) or `workflow_dispatch` (manual, takes a tag input
   like `1.2.0` or `latest`).
 
-### GitHub Environment: `stage`
+### Repository Actions secrets
 
-The deploy job declares `environment: stage`, so all secrets are scoped
-to that Environment under **Settings → Environments → stage**. Add
-required reviewers there if you want a manual approval gate.
+The deploy job reads secrets directly from the repository (no GitHub
+Environment), so add them under **Settings → Secrets and variables
+→ Actions → Secrets**. (If you later want a manual-approval gate
+or branch-protection on deploys, re-introduce `environment: stage`
+on the deploy job and migrate the secrets into that environment;
+both work, this is just simpler.)
 
 | Secret | Purpose |
 |---|---|
@@ -181,7 +184,8 @@ required reviewers there if you want a manual approval gate.
 | `REDIS_URL` | `redis://:<password>@<platform-redis-host>:6379/0`. Password embedded in the URL — no separate `REDIS_PASSWORD`. |
 | `SESSION_SECRET` | ≥32 random chars. |
 
-Optional Environment **variables** (non-secret, with defaults):
+Optional repository **variables** (non-secret, under the same Actions
+settings page → Variables tab; falls back to defaults if unset):
 `VPS_APP_DIR` (`/opt/tape`), `HEALTH_PATH` (`/health`), `HEALTH_PORT`
 (`8000`).
 

@@ -5,14 +5,15 @@ name: Deploy (stage)
 # Trigger: `repository_dispatch: released` (fired by release.yml after
 #          semantic-release cuts a new tag), or manual `workflow_dispatch`.
 # Action:  rsync `docker-compose.yaml`, write `/opt/tape/.env` from
-#          GitHub Environment secrets, `docker compose pull && up -d`
+#          repository Actions secrets, `docker compose pull && up -d`
 #          on the box, then health-check `/health` over SSH.
 #
 # The chain release.yml -> docker.yml + deploy.yml works without a PAT:
 # repository_dispatch is the documented escape hatch from the
 # "GITHUB_TOKEN events do not trigger workflows" safeguard.
 #
-# Required GitHub Environment secrets (Settings -> Environments -> `stage`):
+# Required repository Actions secrets
+# (Settings -> Secrets and variables -> Actions -> Secrets):
 #   VPS_HOST           - hostname or IP of the stage VPS
 #   VPS_PORT           - SSH port (e.g. 22)
 #   VPS_USER           - SSH user (e.g. deploy)
@@ -24,7 +25,7 @@ name: Deploy (stage)
 #   REDIS_URL          - redis://:<password>@<platform-redis>:6379/0
 #   SESSION_SECRET     - 32+ random chars
 #
-# Required GitHub Environment variables (optional, with defaults):
+# Optional repository Actions variables (Settings -> ... -> Variables):
 #   VPS_APP_DIR        - app dir on the VPS (default: /opt/tape)
 #   HEALTH_PATH        - app health path (default: /health)
 #   HEALTH_PORT        - app port on the VPS (default: 8000)
@@ -54,9 +55,6 @@ jobs:
     name: SSH deploy to stage
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment:
-      name: stage
-      url: https://${{ secrets.VPS_HOST }}
 
     env:
       APP_DIR: ${{ vars.VPS_APP_DIR || '/opt/tape' }}
