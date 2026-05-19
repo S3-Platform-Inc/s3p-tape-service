@@ -77,8 +77,13 @@ JSON content-type. Codes: `UNAUTHORIZED`, `FORBIDDEN`, `INVALID_REQUEST`,
 
 ## Production deploy
 
+`feat:` / `fix:` commits to `main` auto-ship to stage:
+`release.yml` (semantic-release) → `docker.yml` (GHCR multi-arch build)
+→ `deploy.yml` (SSH + `docker compose pull && up -d` + `/health` check).
+
 See `docs/DEPLOY.md` for the prod compose overlay, reverse-proxy
-snippet, scaling rules, and operational runbook.
+snippet, scaling rules, the CI/CD chain, required GitHub secrets,
+and the manual rollback path.
 
 ## Implementation plan
 

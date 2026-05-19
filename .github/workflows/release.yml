@@ -34,6 +34,48 @@ jobs:
             conventional-changelog-conventionalcommits
 
       - name: Release
+        id: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: semantic-release
+        run: |
+          set -euo pipefail
+          before=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
+          semantic-release
+          after=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
+          if [ "$before" != "$after" ] && [ "$after" != "none" ]; then
+            {
+              echo "published=true"
+              echo "tag=$after"
+              echo "version=${after#v}"
+              echo "sha=$(git rev-list -n 1 "$after")"
+            } >> "$GITHUB_OUTPUT"
+            echo "Published $after"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "No release published"
+          fi
+
+      # Fan out to docker.yml + deploy.yml via repository_dispatch.
+      # repository_dispatch is the documented escape hatch from the
+      # "GITHUB_TOKEN events do not trigger workflows" rule, so this
+      # chain works without a PAT.
+      - name: Dispatch released event
+        if: steps.release.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+          SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          set -euo pipefail
+          gh api --method POST "/repos/${{ github.repository }}/dispatches" --input - <<EOF
+          {
+            "event_type": "released",
+            "client_payload": {
+              "tag": "${TAG}",
+              "version": "${VERSION}",
+              "sha": "${SHA}"
+            }
+          }
+          EOF
+          echo "Dispatched 'released' event for ${TAG}"
