@@ -1,6 +1,6 @@
 # Production compose overlay.
 #
-# Differences from compose.yaml (dev):
+# Differences from compose.dev.yaml (dev):
 #   - api/worker use the pre-built image, not `build: .`
 #   - pg is NOT included — production uses the platform's existing
 #     s3p-database; only DATABASE_URL is wired through.
@@ -8,13 +8,13 @@
 #   - secrets are required (?required); no dev fallbacks.
 #   - restart: unless-stopped on every long-lived service.
 #
-# Usage:
+# Usage (this file is Docker Compose's default; no -f flag needed):
 #   TAG=v0.1.0 \
 #   DATABASE_URL=postgresql://user:pw@db.internal:5432/s3p \
 #   REDIS_PASSWORD=$(openssl rand -hex 32) \
 #   REDIS_URL=redis://:$REDIS_PASSWORD@redis:6379/0 \
 #   SESSION_SECRET=$(openssl rand -hex 32) \
-#   docker compose -f compose.prod.yaml up -d
+#   docker compose up -d
 
 services:
   api:

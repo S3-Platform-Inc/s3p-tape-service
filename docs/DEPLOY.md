@@ -41,7 +41,7 @@ Two compose-managed services + one external dependency (the platform DB).
 | `SESSION_ABSOLUTE_TTL_DAYS` | no (`30`) | Hard expiry. |
 | `SESSION_IDLE_TTL_DAYS` | no (`14`) | Sliding idle expiry. |
 | `WORKER_ADVISORY_LOCK_TTL_SECONDS` | no (`600`) | Auto-release if the worker dies mid-job. |
-| `TAG` | no (`latest`) | Image tag pulled by `compose.prod.yaml`. |
+| `TAG` | no (`latest`) | Image tag pulled by `docker-compose.yaml`. |
 
 ## Reverse proxy
 
@@ -126,11 +126,11 @@ TAG=v0.1.0
 docker build -t s3p-tape-service:$TAG .
 docker push <registry>/s3p-tape-service:$TAG
 
-# Roll
+# Roll (docker-compose.yaml is Compose's default; no -f flag needed)
 export TAG DATABASE_URL REDIS_URL REDIS_PASSWORD SESSION_SECRET
-docker compose -f compose.prod.yaml up -d
-docker compose -f compose.prod.yaml ps
-docker compose -f compose.prod.yaml logs --tail=200 api worker
+docker compose up -d
+docker compose ps
+docker compose logs --tail=200 api worker
 ```
 
 ## Health endpoints
