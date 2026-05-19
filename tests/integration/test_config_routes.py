@@ -44,8 +44,8 @@ def test_get_config_returns_defaults_for_new_user(client, alpha_clean_config):
     assert body["page_size"] == 20
     assert body["dirty"] is False
     assert body["selected_source_ids"] == []
-    # Alpha (user 1) has role ALL, which covers both seed sources.
-    assert {s["id"] for s in body["available_sources"]} == {1, 2}
+    # Alpha (user 1) has role ALL, which covers all six seed sources.
+    assert {s["id"] for s in body["available_sources"]} == {1, 2, 3, 4, 5, 6}
 
 
 def test_put_config_rejects_unauthorized_source(client, alpha_clean_config):

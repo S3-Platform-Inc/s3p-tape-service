@@ -10,11 +10,13 @@ from .api.auth import router as auth_router
 from .api.config import router as config_router
 from .api.health import router as health_router
 from .api.tape import router as tape_router
+from .api.ws import router as ws_router
 from .db import close_pool, open_pool
 from .errors import ApiError, api_error_handler
 from .logging_setup import configure_logging
 from .settings import get_settings
 from .store import close_redis, open_redis
+from .store.async_client import close_async_redis, open_async_redis
 
 log = logging.getLogger(__name__)
 
@@ -25,10 +27,12 @@ async def lifespan(_app: FastAPI):
     configure_logging(s.log_level)
     open_pool()
     open_redis()
+    await open_async_redis()
     log.info("api.startup")
     try:
         yield
     finally:
+        await close_async_redis()
         close_redis()
         close_pool()
         log.info("api.shutdown")
@@ -41,6 +45,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(config_router)
     app.include_router(tape_router)
+    app.include_router(ws_router)
     return app
 
 

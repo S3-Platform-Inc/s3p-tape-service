@@ -12,7 +12,8 @@ from ..db.users import roles_for
 from ..errors import ApiError, ErrorCode
 from ..schemas.score import ScoreRequest
 from ..schemas.tape import RoleRef, TapeDocument, TapeItem, TapePage
-from ..store import get_redis
+from ..store import events, get_redis
+from ..store import lock as lock_store
 from ..store import tape as tape_store
 
 router = APIRouter()
@@ -53,6 +54,8 @@ def read_tape(
     user: CurrentUser = Depends(current_user),
 ) -> TapePage:
     r = get_redis()
+    if lock_store.is_locked(r, user_id=user.user_id):
+        raise ApiError(ErrorCode.TAPE_LOCKED, "tape is regenerating")
     cfg = tape_store.get_config(r, user_id=user.user_id)
     if cfg is None:
         return TapePage(
@@ -98,7 +101,17 @@ def read_tape(
     for position, doc_id in rows:
         if doc_id in already_scored:
             # The listener may not have caught up yet; safety-filter the page.
-            tape_store.remove_entry(r, user_id=user.user_id, document_id=doc_id)
+            removed = tape_store.remove_entry(
+                r,
+                user_id=user.user_id,
+                document_id=doc_id,
+            )
+            if removed:
+                events.publish(
+                    r,
+                    user_id=user.user_id,
+                    event=events.make_tape_entry_removed(user.user_id, doc_id),
+                )
             continue
         d = docs.get(doc_id)
         if d is None:
@@ -156,9 +169,15 @@ def submit_score(
 
     # Inline tape cleanup — no waiting on the LISTEN thread for the web path.
     # The listener is still the safety net for non-web score paths.
+    r = get_redis()
     tape_store.remove_entry(
-        get_redis(),
+        r,
         user_id=user.user_id,
         document_id=payload.document_id,
+    )
+    events.publish(
+        r,
+        user_id=user.user_id,
+        event=events.make_tape_entry_removed(user.user_id, payload.document_id),
     )
     return {"score_id": score_id}

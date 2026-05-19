@@ -23,6 +23,11 @@ def _key(user_id: int) -> str:
     return f"tape:lock:{user_id}"
 
 
+def is_locked(client: redis.Redis, *, user_id: int) -> bool:
+    """True iff a per-user regen lock is currently held in Redis."""
+    return bool(client.exists(_key(user_id)))
+
+
 @contextmanager
 def per_user_lock(client: redis.Redis, *, user_id: int) -> Iterator[bool]:
     """Yield True if the lock was acquired, False otherwise.

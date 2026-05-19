@@ -8,7 +8,7 @@ from ..db.sources import fetch_names_by_ids
 from ..db.users import sources_for
 from ..errors import ApiError, ErrorCode
 from ..schemas.config import ConfigResponse, ConfigUpdate, SourceRef
-from ..store import get_redis
+from ..store import events, get_redis
 from ..store import tape as tape_store
 
 router = APIRouter(prefix="/config")
@@ -87,5 +87,12 @@ def write_config(
         r,
         user_id=user.user_id,
         source_ids=list(payload.selected_source_ids),
+    )
+    # Both upsert_config and set_config_sources flip the dirty flag to "1",
+    # so the worker will pick this user up on the next tick.
+    events.publish(
+        r,
+        user_id=user.user_id,
+        event=events.make_schedule_queued(user.user_id, "config_dirty"),
     )
     return read_config(user=user)

@@ -34,6 +34,10 @@ API root: http://localhost:8000/health → `{"status":"ok","db":"ok"}`
       -H 'content-type: application/json' \
       -d '{"document_id":1,"role_id":1,"verdict":"yes"}'
 
+    # Open the per-user event stream (lock, schedule, tape ops)
+    COOKIE=$(awk '/s3p_session/{print $7}' /tmp/c.txt)
+    npx wscat -c ws://localhost:8000/ws -H "Cookie: s3p_session=$COOKIE"
+
 ## Tests
 
     uv run pytest                     # unit tests (no Docker needed)
@@ -48,13 +52,14 @@ API root: http://localhost:8000/health → `{"status":"ok","db":"ok"}`
 | GET    | `/auth/me`     | session  | Returns `{user_id}`. |
 | GET    | `/config`      | session  | Tape config + selectable sources. |
 | PUT    | `/config`      | session  | Update config; marks tape dirty for the worker. |
-| GET    | `/tape`        | session  | Paginated tape page (`?after=N`); state ∈ {ok, empty, preparing}. |
+| GET    | `/tape`        | session  | Paginated tape page (`?after=N`); state ∈ {ok, empty, preparing}. Returns 409 `TAPE_LOCKED` while the worker is regenerating. |
 | POST   | `/score`       | session  | Submit a verdict; removes the doc from the tape. |
 | GET    | `/health`      | —        | Liveness + DB probe. |
+| WS     | `/ws`          | session  | Per-user event stream. Auth via the `s3p_session` cookie set by `/auth/login`; unauthenticated upgrades close with code 1008. Pushes JSON frames `{"type": ..., "user_id": ..., "at": ..., ...}` for tape ops (`tape.entry_added`, `tape.entry_removed`, `tape.regenerated`), schedule lifecycle (`schedule.queued`, `schedule.started`, `schedule.completed`), and lock status (`lock.acquired`, `lock.released`). Server-to-client only. |
 
 Errors follow `{"error":{"code":"<MACHINE_CODE>","message":"..."}}` with a
 JSON content-type. Codes: `UNAUTHORIZED`, `FORBIDDEN`, `INVALID_REQUEST`,
-`RATE_LIMITED`, `ALREADY_SCORED`, `INTERNAL`.
+`RATE_LIMITED`, `ALREADY_SCORED`, `TAPE_LOCKED`, `INTERNAL`.
 
 ## Layout
 

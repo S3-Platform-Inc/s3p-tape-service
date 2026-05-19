@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 import redis
+import redis.asyncio as aioredis
 
 from ..settings import get_settings
 
@@ -81,6 +82,47 @@ def validate(client: redis.Redis, *, raw_session: str) -> Session | None:
     payload["last_seen"] = now.isoformat()
     idle_seconds = s.session_idle_ttl_days * 86400
     client.set(_key(h), json.dumps(payload), ex=idle_seconds)
+    return Session(
+        user_id=int(payload["user_id"]),
+        created_at=created,
+        expires_at=expires,
+        last_seen=now,
+    )
+
+
+async def validate_async(client: aioredis.Redis, *, raw_session: str) -> Session | None:
+    """Async mirror of validate() for the WebSocket upgrade path.
+
+    Uses the module-level async Redis pool so the auth handshake doesn't
+    block the event loop. Semantics are identical to validate()."""
+    s = get_settings()
+    h = _hash(raw_session)
+    blob = await client.get(_key(h))
+    if blob is None:
+        return None
+    try:
+        payload = json.loads(blob)
+    except (TypeError, ValueError):
+        await client.delete(_key(h))
+        return None
+
+    now = datetime.now(UTC)
+    try:
+        created = datetime.fromisoformat(payload["created_at"])
+        expires = datetime.fromisoformat(payload["expires_at"])
+        last_seen = datetime.fromisoformat(payload["last_seen"])
+    except (KeyError, TypeError, ValueError):
+        await client.delete(_key(h))
+        return None
+    _ = last_seen
+
+    if expires <= now:
+        await client.delete(_key(h))
+        return None
+
+    payload["last_seen"] = now.isoformat()
+    idle_seconds = s.session_idle_ttl_days * 86400
+    await client.set(_key(h), json.dumps(payload), ex=idle_seconds)
     return Session(
         user_id=int(payload["user_id"]),
         created_at=created,

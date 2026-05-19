@@ -10,3 +10,8 @@ def test_api_error_serialises():
 def test_all_codes_have_status():
     for code in ErrorCode:
         assert code.status >= 400
+
+
+def test_tape_locked_is_409_conflict():
+    assert ErrorCode.TAPE_LOCKED.status == 409
+    assert ErrorCode.TAPE_LOCKED.code == "TAPE_LOCKED"

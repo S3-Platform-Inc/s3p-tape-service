@@ -13,25 +13,18 @@ from dotenv import dotenv_values
 
 
 def _default_database_url() -> str:
-    # docker compose reads REDIS_PASSWORD from the repo's .env to start redis
-    # with --requirepass. Mirror that here so tests don't silently skip when
-    # the stack runs with a non-default password. DATABASE_URL in .env is
-    # intentionally NOT consumed — it may point at a remote DB.
-    repo_env = Path(__file__).resolve().parents[2] / ".env"
-    file_database_url = dotenv_values(repo_env).get("DATABASE_URL") if repo_env.exists() else None
-    database_url = (
-        os.environ.get("DATABASE_URL")
-        or file_database_url
-        or "postgresql://sppadmin:devpass@localhost:15432/s3p"
-    )
-    return database_url
+    # DATABASE_URL in .env is intentionally NOT consumed — it may point at a
+    # remote/production DB that the running api container talks to over the
+    # docker network. Integration tests must hit the local dev stack, so we
+    # only honour an explicit DATABASE_URL env var (e.g. from CI) and
+    # otherwise fall back to compose.yaml's dev DSN.
+    return os.environ.get("DATABASE_URL") or "postgresql://sppadmin:devpass@localhost:15432/s3p"
 
 
 def _default_redis_url() -> str:
     # docker compose reads REDIS_PASSWORD from the repo's .env to start redis
     # with --requirepass. Mirror that here so tests don't silently skip when
-    # the stack runs with a non-default password. DATABASE_URL in .env is
-    # intentionally NOT consumed — it may point at a remote DB.
+    # the stack runs with a non-default password.
     repo_env = Path(__file__).resolve().parents[2] / ".env"
     file_password = dotenv_values(repo_env).get("REDIS_PASSWORD") if repo_env.exists() else None
     password = os.environ.get("REDIS_PASSWORD") or file_password or "devredis"
