@@ -1,8 +1,10 @@
+name: Deploy (stage)
+
 # Deploy to the stage VPS.
 #
 # Trigger: `repository_dispatch: released` (fired by release.yml after
 #          semantic-release cuts a new tag), or manual `workflow_dispatch`.
-# Action:  rsync `compose.stage.yaml`, write `/opt/tape/.env` from
+# Action:  rsync `docker-compose.yaml`, write `/opt/tape/.env` from
 #          GitHub Environment secrets, `docker compose pull && up -d`
 #          on the box, then health-check `/health` over SSH.
 #
@@ -18,17 +20,14 @@
 #   VPS_KNOWN_HOSTS    - output of `ssh-keyscan -p <port> <host>` (host key pin)
 #   GHCR_USER          - GitHub username with `read:packages` on this image
 #   GHCR_TOKEN         - PAT with `read:packages` scope (for the VPS to pull)
-#   DATABASE_URL       - postgres URL for the stage DB
-#   REDIS_PASSWORD     - password for the redis sidecar
-#   REDIS_URL          - redis://:<password>@redis:6379/0
+#   DATABASE_URL       - postgres URL for the platform DB
+#   REDIS_URL          - redis://:<password>@<platform-redis>:6379/0
 #   SESSION_SECRET     - 32+ random chars
 #
 # Required GitHub Environment variables (optional, with defaults):
 #   VPS_APP_DIR        - app dir on the VPS (default: /opt/tape)
 #   HEALTH_PATH        - app health path (default: /health)
 #   HEALTH_PORT        - app port on the VPS (default: 8000)
-
-name: Deploy (stage)
 
 on:
   # Fired by release.yml after semantic-release cuts a new tag.
@@ -67,7 +66,7 @@ jobs:
 
     steps:
       # Use the released tag (when dispatched by release.yml) so the
-      # compose.stage.yaml we rsync matches the image being deployed.
+      # docker-compose.yaml we rsync matches the image being deployed.
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.client_payload.tag || github.ref }}
@@ -140,15 +139,14 @@ jobs:
       - name: Rsync compose file
         run: |
           rsync -avz --delete-after \
-            compose.stage.yaml \
-            "vps:${APP_DIR}/compose.stage.yaml"
+            docker-compose.yaml \
+            "vps:${APP_DIR}/docker-compose.yaml"
 
       - name: Write .env on VPS
         env:
           TAG: ${{ steps.tag.outputs.tag }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           REDIS_URL: ${{ secrets.REDIS_URL }}
-          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
         run: |
           set -euo pipefail
@@ -157,7 +155,6 @@ jobs:
             printf 'TAG=%s\n' "$TAG"
             printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
             printf 'REDIS_URL=%s\n' "$REDIS_URL"
-            printf 'REDIS_PASSWORD=%s\n' "$REDIS_PASSWORD"
             printf 'SESSION_SECRET=%s\n' "$SESSION_SECRET"
             printf 'SESSION_COOKIE_SECURE=%s\n' "true"
             printf 'LOG_LEVEL=%s\n' "INFO"
@@ -177,8 +174,8 @@ jobs:
           set -euo pipefail
           cd "$APP_DIR"
           echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-          docker compose -f compose.stage.yaml --env-file .env pull
-          docker compose -f compose.stage.yaml --env-file .env up -d --remove-orphans
+          docker compose --env-file .env pull
+          docker compose --env-file .env up -d --remove-orphans
           docker image prune -f
           docker logout ghcr.io >/dev/null 2>&1 || true
           REMOTE
@@ -197,8 +194,8 @@ jobs:
           done
           echo "health check failed after 2 min" >&2
           cd "$APP_DIR"
-          docker compose -f compose.stage.yaml --env-file .env ps
-          docker compose -f compose.stage.yaml --env-file .env logs --tail=100 api
+          docker compose --env-file .env ps
+          docker compose --env-file .env logs --tail=100 api
           exit 1
           REMOTE
 

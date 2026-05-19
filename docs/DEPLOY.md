@@ -29,9 +29,8 @@ Two compose-managed services + one external dependency (the platform DB).
 
 | Variable | Required | Notes |
 |---|---|---|
-| `DATABASE_URL` | yes | `postgresql://user:pw@host:5432/s3p` |
-| `REDIS_URL` | yes | `redis://:PASSWORD@redis:6379/0` |
-| `REDIS_PASSWORD` | yes | Used by the `redis` service's `requirepass` and embedded into `REDIS_URL`. Mint with `openssl rand -hex 32`. |
+| `DATABASE_URL` | yes | `postgresql://user:pw@host:5432/s3p`. Platform's `s3p-database`. |
+| `REDIS_URL` | yes | `redis://:PASSWORD@redis.internal:6379/0`. Platform's managed Redis; password is embedded in the URL — no separate `REDIS_PASSWORD` env var. |
 | `SESSION_SECRET` | yes | ≥32 chars random. `openssl rand -hex 32`. |
 | `SESSION_COOKIE_SECURE` | no (default `true`) | Force `false` only behind a non-TLS dev proxy. |
 | `LOG_LEVEL` | no (`INFO`) | `DEBUG`/`INFO`/`WARNING`/`ERROR` |
@@ -156,11 +155,12 @@ hatch and works without a PAT.
   - on `repository_dispatch: released` → `1.2.0`, `1.2`, `1`, `latest`, `sha-<short>` (built from the released git tag)
   - on PR → `pr-<N>`, `sha-<short>` (not pushed)
 - **`.github/workflows/deploy.yml`** — SSHes into the stage VPS,
-  rsyncs `compose.stage.yaml`, writes `/opt/tape/.env` (mode 600) from
-  Environment secrets, runs `docker compose pull && up -d
-  --remove-orphans`, then polls `/health` for up to 2 minutes. Triggers:
-  `repository_dispatch: released` (auto) or `workflow_dispatch` (manual,
-  takes a tag input like `1.2.0` or `latest`).
+  rsyncs `docker-compose.yaml` (same file used in prod), writes
+  `/opt/tape/.env` (mode 600) from Environment secrets, runs
+  `docker compose pull && up -d --remove-orphans`, then polls
+  `/health` for up to 2 minutes. Triggers: `repository_dispatch:
+  released` (auto) or `workflow_dispatch` (manual, takes a tag input
+  like `1.2.0` or `latest`).
 
 ### GitHub Environment: `stage`
 
@@ -177,9 +177,8 @@ required reviewers there if you want a manual approval gate.
 | `VPS_KNOWN_HOSTS` | Output of `ssh-keyscan -p <port> <host>`. Pins the host key. |
 | `GHCR_USER` | GitHub username with `read:packages` on the image. |
 | `GHCR_TOKEN` | PAT with `read:packages`. Used on the VPS for `docker login`. |
-| `DATABASE_URL` | Stage postgres URL. |
-| `REDIS_URL` | `redis://:<password>@redis:6379/0`. |
-| `REDIS_PASSWORD` | For the redis sidecar in `compose.stage.yaml`. |
+| `DATABASE_URL` | Stage postgres URL (platform `s3p-database`). |
+| `REDIS_URL` | `redis://:<password>@<platform-redis-host>:6379/0`. Password embedded in the URL — no separate `REDIS_PASSWORD`. |
 | `SESSION_SECRET` | ≥32 random chars. |
 
 Optional Environment **variables** (non-secret, with defaults):
@@ -239,10 +238,10 @@ otherwise identical to these steps.
 # On the VPS, as the deploy user, with /opt/tape/.env already populated:
 cd /opt/tape
 echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-TAG=1.1.0 docker compose -f compose.stage.yaml --env-file .env pull
-TAG=1.1.0 docker compose -f compose.stage.yaml --env-file .env up -d --remove-orphans
-docker compose -f compose.stage.yaml --env-file .env ps
-docker compose -f compose.stage.yaml --env-file .env logs --tail=200 api worker
+TAG=1.1.0 docker compose --env-file .env pull
+TAG=1.1.0 docker compose --env-file .env up -d --remove-orphans
+docker compose --env-file .env ps
+docker compose --env-file .env logs --tail=200 api worker
 ```
 
 For an emergency local build (skipping GHCR entirely):
