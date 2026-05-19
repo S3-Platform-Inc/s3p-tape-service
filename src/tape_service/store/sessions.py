@@ -90,9 +90,7 @@ def validate(client: redis.Redis, *, raw_session: str) -> Session | None:
     )
 
 
-async def validate_async(
-    client: aioredis.Redis, *, raw_session: str
-) -> Session | None:
+async def validate_async(client: aioredis.Redis, *, raw_session: str) -> Session | None:
     """Async mirror of validate() for the WebSocket upgrade path.
 
     Uses the module-level async Redis pool so the auth handshake doesn't
