@@ -1,3 +1,9 @@
+## [1.1.0](https://github.com/S3-Platform-Inc/s3p-tape-service/compare/v1.0.3...v1.1.0) (2026-05-19)
+
+### Features
+
+* WS event stream + TAPE_LOCKED gate on /tape ([#11](https://github.com/S3-Platform-Inc/s3p-tape-service/issues/11)) ([26a78b5](https://github.com/S3-Platform-Inc/s3p-tape-service/commit/26a78b5b19898a2510390e632369aff3acdcfa10))
+
 ## [1.0.3](https://github.com/S3-Platform-Inc/s3p-tape-service/compare/v1.0.2...v1.0.3) (2026-05-18)
 
 ### Bug Fixes
