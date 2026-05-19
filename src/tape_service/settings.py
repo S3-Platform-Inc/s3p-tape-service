@@ -1,17 +1,17 @@
 from functools import lru_cache
 
-from pydantic import Field, PostgresDsn, RedisDsn, field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    database_url: PostgresDsn = Field(...)
+    database_url: str = Field(...)
     db_pool_min_size: int = 1
     db_pool_max_size: int = 10
 
-    redis_url: RedisDsn = Field(...)
+    redis_url: str = Field(...)
     redis_max_connections: int = 20
 
     session_secret: str = Field(..., min_length=32)
@@ -28,6 +28,20 @@ class Settings(BaseSettings):
     worker_advisory_lock_ttl_seconds: int = 600
 
     log_level: str = "INFO"
+
+    @field_validator("database_url")
+    @classmethod
+    def _check_database_url(cls, v: str) -> str:
+        if not v.startswith(("postgres://", "postgresql://")):
+            raise ValueError("database_url must be a postgresql:// connection string")
+        return v
+
+    @field_validator("redis_url")
+    @classmethod
+    def _check_redis_url(cls, v: str) -> str:
+        if not v.startswith(("redis://", "rediss://", "unix://")):
+            raise ValueError("redis_url must be a redis://, rediss://, or unix:// connection string")
+        return v
 
     @field_validator("session_cookie_samesite")
     @classmethod
