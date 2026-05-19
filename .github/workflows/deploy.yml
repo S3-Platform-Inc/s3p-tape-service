@@ -1,0 +1,215 @@
+# Deploy to the stage VPS.
+#
+# Trigger: `repository_dispatch: released` (fired by release.yml after
+#          semantic-release cuts a new tag), or manual `workflow_dispatch`.
+# Action:  rsync `compose.stage.yaml`, write `/opt/tape/.env` from
+#          GitHub Environment secrets, `docker compose pull && up -d`
+#          on the box, then health-check `/health` over SSH.
+#
+# The chain release.yml -> docker.yml + deploy.yml works without a PAT:
+# repository_dispatch is the documented escape hatch from the
+# "GITHUB_TOKEN events do not trigger workflows" safeguard.
+#
+# Required GitHub Environment secrets (Settings -> Environments -> `stage`):
+#   VPS_HOST           - hostname or IP of the stage VPS
+#   VPS_PORT           - SSH port (e.g. 22)
+#   VPS_USER           - SSH user (e.g. deploy)
+#   VPS_SSH_KEY        - PEM-encoded private key authorized for VPS_USER
+#   VPS_KNOWN_HOSTS    - output of `ssh-keyscan -p <port> <host>` (host key pin)
+#   GHCR_USER          - GitHub username with `read:packages` on this image
+#   GHCR_TOKEN         - PAT with `read:packages` scope (for the VPS to pull)
+#   DATABASE_URL       - postgres URL for the stage DB
+#   REDIS_PASSWORD     - password for the redis sidecar
+#   REDIS_URL          - redis://:<password>@redis:6379/0
+#   SESSION_SECRET     - 32+ random chars
+#
+# Required GitHub Environment variables (optional, with defaults):
+#   VPS_APP_DIR        - app dir on the VPS (default: /opt/tape)
+#   HEALTH_PATH        - app health path (default: /health)
+#   HEALTH_PORT        - app port on the VPS (default: 8000)
+
+name: Deploy (stage)
+
+on:
+  # Fired by release.yml after semantic-release cuts a new tag.
+  # Payload: { tag: "v1.2.0", version: "1.2.0", sha: "<full sha>" }
+  repository_dispatch:
+    types: [released]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to deploy (e.g. 1.2.0 or latest — no 'v' prefix)"
+        required: true
+        default: "latest"
+
+concurrency:
+  group: deploy-stage
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  deploy:
+    name: SSH deploy to stage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: stage
+      url: https://${{ secrets.VPS_HOST }}
+
+    env:
+      APP_DIR: ${{ vars.VPS_APP_DIR || '/opt/tape' }}
+      HEALTH_PATH: ${{ vars.HEALTH_PATH || '/health' }}
+      HEALTH_PORT: ${{ vars.HEALTH_PORT || '8000' }}
+      IMAGE: ghcr.io/${{ github.repository }}
+
+    steps:
+      # Use the released tag (when dispatched by release.yml) so the
+      # compose.stage.yaml we rsync matches the image being deployed.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.tag || github.ref }}
+
+      - name: Resolve image tag
+        id: tag
+        run: |
+          set -euo pipefail
+          case "${{ github.event_name }}" in
+            workflow_dispatch)
+              tag="${{ inputs.tag }}"
+              ;;
+            repository_dispatch)
+              # version is the semver without the 'v' prefix; matches the
+              # docker/metadata-action {{version}} pattern in docker.yml.
+              tag="${{ github.event.client_payload.version }}"
+              ;;
+            *)
+              echo "unsupported event: ${{ github.event_name }}"; exit 1
+              ;;
+          esac
+          [ -n "$tag" ] || { echo "could not resolve tag"; exit 1; }
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Deploying $IMAGE:$tag"
+
+      - name: Log into GHCR (runner, to inspect manifests)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait for image to be published
+        run: |
+          set -euo pipefail
+          ref="${IMAGE}:${{ steps.tag.outputs.tag }}"
+          for i in $(seq 1 60); do
+            if docker manifest inspect "$ref" >/dev/null 2>&1; then
+              echo "image ready: $ref"; exit 0
+            fi
+            echo "[$i/60] waiting for $ref..."; sleep 10
+          done
+          echo "image not available after 10 min: $ref"; exit 1
+
+      - name: Configure SSH client
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "${{ secrets.VPS_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host vps
+            HostName ${{ secrets.VPS_HOST }}
+            Port ${{ secrets.VPS_PORT }}
+            User ${{ secrets.VPS_USER }}
+            IdentityFile ~/.ssh/id_deploy
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            UserKnownHostsFile ~/.ssh/known_hosts
+            ServerAliveInterval 20
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Ensure app dir exists on VPS
+        run: ssh vps "mkdir -p '${APP_DIR}'"
+
+      - name: Rsync compose file
+        run: |
+          rsync -avz --delete-after \
+            compose.stage.yaml \
+            "vps:${APP_DIR}/compose.stage.yaml"
+
+      - name: Write .env on VPS
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+        run: |
+          set -euo pipefail
+          umask 077
+          {
+            printf 'TAG=%s\n' "$TAG"
+            printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
+            printf 'REDIS_URL=%s\n' "$REDIS_URL"
+            printf 'REDIS_PASSWORD=%s\n' "$REDIS_PASSWORD"
+            printf 'SESSION_SECRET=%s\n' "$SESSION_SECRET"
+            printf 'SESSION_COOKIE_SECURE=%s\n' "true"
+            printf 'LOG_LEVEL=%s\n' "INFO"
+            printf 'WORKER_INTERVAL_SECONDS=%s\n' "60"
+          } > deploy.env
+          scp deploy.env "vps:${APP_DIR}/.env"
+          ssh vps "chmod 600 '${APP_DIR}/.env'"
+          rm -f deploy.env
+
+      - name: Login to GHCR on VPS, pull image, restart stack
+        env:
+          GHCR_USER: ${{ secrets.GHCR_USER }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          set -euo pipefail
+          ssh vps "GHCR_USER='${GHCR_USER}' GHCR_TOKEN='${GHCR_TOKEN}' APP_DIR='${APP_DIR}' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$APP_DIR"
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+          docker compose -f compose.stage.yaml --env-file .env pull
+          docker compose -f compose.stage.yaml --env-file .env up -d --remove-orphans
+          docker image prune -f
+          docker logout ghcr.io >/dev/null 2>&1 || true
+          REMOTE
+
+      - name: Health check via SSH
+        run: |
+          set -euo pipefail
+          ssh vps "HEALTH_PORT='${HEALTH_PORT}' HEALTH_PATH='${HEALTH_PATH}' APP_DIR='${APP_DIR}' bash -s" <<'REMOTE'
+          set -euo pipefail
+          for i in $(seq 1 40); do
+            if curl -fsS --max-time 3 "http://localhost:${HEALTH_PORT}${HEALTH_PATH}" >/dev/null; then
+              echo "health ok after ${i} attempt(s)"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "health check failed after 2 min" >&2
+          cd "$APP_DIR"
+          docker compose -f compose.stage.yaml --env-file .env ps
+          docker compose -f compose.stage.yaml --env-file .env logs --tail=100 api
+          exit 1
+          REMOTE
+
+      - name: Deploy summary
+        if: always()
+        run: |
+          {
+            echo "### Deploy summary"
+            echo
+            echo "- **Image:** \`${IMAGE}:${{ steps.tag.outputs.tag }}\`"
+            echo "- **Target:** stage (\`${{ secrets.VPS_HOST }}\`)"
+            echo "- **Trigger:** \`${{ github.event_name }}\`"
+            echo "- **Status:** ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"
