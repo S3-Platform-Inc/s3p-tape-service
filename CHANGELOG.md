@@ -1,3 +1,9 @@
+## [1.1.1](https://github.com/S3-Platform-Inc/s3p-tape-service/compare/v1.1.0...v1.1.1) (2026-05-20)
+
+### Bug Fixes
+
+* **env:** correct dev postgres port in .env.sample ([#18](https://github.com/S3-Platform-Inc/s3p-tape-service/issues/18)) ([ca5a224](https://github.com/S3-Platform-Inc/s3p-tape-service/commit/ca5a224f5820b511061ab08d77028d17e87b5c67))
+
 ## [1.1.0](https://github.com/S3-Platform-Inc/s3p-tape-service/compare/v1.0.3...v1.1.0) (2026-05-19)
 
 ### Features
