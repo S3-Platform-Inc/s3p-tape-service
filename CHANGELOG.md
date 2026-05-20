@@ -1,3 +1,9 @@
+## [1.1.2](https://github.com/S3-Platform-Inc/s3p-tape-service/compare/v1.1.1...v1.1.2) (2026-05-20)
+
+### Bug Fixes
+
+* **ci:** lowercase GHCR namespace in deploy.yml IMAGE env ([#19](https://github.com/S3-Platform-Inc/s3p-tape-service/issues/19)) ([38423b8](https://github.com/S3-Platform-Inc/s3p-tape-service/commit/38423b8d7ebf753982c279d8173163115fbb43f4))
+
 ## [1.1.1](https://github.com/S3-Platform-Inc/s3p-tape-service/compare/v1.1.0...v1.1.1) (2026-05-20)
 
 ### Bug Fixes
