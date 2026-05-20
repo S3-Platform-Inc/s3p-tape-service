@@ -60,9 +60,14 @@ jobs:
       APP_DIR: ${{ vars.VPS_APP_DIR || '/opt/tape' }}
       HEALTH_PATH: ${{ vars.HEALTH_PATH || '/health' }}
       HEALTH_PORT: ${{ vars.HEALTH_PORT || '8000' }}
-      IMAGE: ghcr.io/${{ github.repository }}
+      # IMAGE is computed in the first step (must be lowercased — GHCR
+      # namespaces are case-sensitive and metadata-action lowercases on
+      # push, so a mixed-case `github.repository` would 404 here).
 
     steps:
+      - name: Compute lowercased image ref
+        run: echo "IMAGE=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
       # Use the released tag (when dispatched by release.yml) so the
       # docker-compose.yaml we rsync matches the image being deployed.
       - uses: actions/checkout@v4
