@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
@@ -48,7 +48,7 @@ jobs:
     steps:
       # On repository_dispatch we want the image built from the release
       # commit, not the default branch HEAD. The payload carries the tag.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.client_payload.tag || github.ref }}
 

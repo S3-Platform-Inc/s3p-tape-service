@@ -70,7 +70,7 @@ jobs:
 
       # Use the released tag (when dispatched by release.yml) so the
       # docker-compose.yaml we rsync matches the image being deployed.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.client_payload.tag || github.ref }}
 
