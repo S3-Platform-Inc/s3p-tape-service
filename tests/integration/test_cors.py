@@ -93,9 +93,7 @@ def test_ws_rejects_disallowed_origin(cors_client):
     assert r.status_code == 200, r.text
     try:
         with pytest.raises(WebSocketDisconnect) as exc:
-            with cors_client.websocket_connect(
-                "/ws", headers={"Origin": DISALLOWED}
-            ):
+            with cors_client.websocket_connect("/ws", headers={"Origin": DISALLOWED}):
                 pass
         assert exc.value.code == 1008
     finally:
@@ -113,9 +111,7 @@ def test_ws_accepts_allowed_origin(cors_client):
     )
     assert r.status_code == 200, r.text
     try:
-        with cors_client.websocket_connect(
-            "/ws", headers={"Origin": ALLOWED}
-        ) as ws:
+        with cors_client.websocket_connect("/ws", headers={"Origin": ALLOWED}) as ws:
             assert ws is not None
     finally:
         reset_login_limiter_for_tests()
