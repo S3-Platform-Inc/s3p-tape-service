@@ -1,3 +1,9 @@
+## [1.2.0](https://github.com/S3-Platform-Inc/s3p-tape-service/compare/v1.1.2...v1.2.0) (2026-05-21)
+
+### Features
+
+* **cors:** support split-domain deploys via configurable allowlist ([#21](https://github.com/S3-Platform-Inc/s3p-tape-service/issues/21)) ([013e365](https://github.com/S3-Platform-Inc/s3p-tape-service/commit/013e365bc2e3528771f03a1f8e5bf9ac5cd3c663)), closes [#20](https://github.com/S3-Platform-Inc/s3p-tape-service/issues/20)
+
 ## [1.1.2](https://github.com/S3-Platform-Inc/s3p-tape-service/compare/v1.1.1...v1.1.2) (2026-05-20)
 
 ### Bug Fixes
