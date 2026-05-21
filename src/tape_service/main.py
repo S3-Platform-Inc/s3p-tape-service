@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from .api.auth import router as auth_router
 from .api.config import router as config_router
@@ -40,6 +41,19 @@ async def lifespan(_app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="S3 Platform Tape Service", version="0.1.0", lifespan=lifespan)
+    s = get_settings()
+    # Only mount CORS when the deploy actually spans two domains. Empty
+    # allowlist => same-origin deploy => no preflight overhead, no
+    # accidental exposure. allow_credentials with credentials:'include'
+    # requires an *exact* origin echo back; "*" is intentionally never used.
+    if s.cors_allow_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=s.cors_allow_origins,
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+            allow_headers=["content-type"],
+        )
     app.add_exception_handler(ApiError, api_error_handler)
     app.include_router(health_router)
     app.include_router(auth_router)
