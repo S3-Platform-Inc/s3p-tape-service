@@ -1,8 +1,15 @@
 # Deploying s3p-tape-service
 
-The service runs on a private network. A reverse proxy is the only public
-component and also serves the static `s3p-web-annotation` build, same-origin
-with this API — so the session cookie is first-party and CORS is not needed.
+The service runs on a private network. Two supported topologies:
+
+1. **Same-origin** — a single reverse proxy serves both the static
+   `s3p-web-annotation` build and forwards `/api/*` to this api. The
+   session cookie is first-party, CORS is unused, samesite stays at `lax`.
+2. **Split-domain** — the SPA and the api live on separate hostnames
+   (e.g. `score.s3platform.ru` → `tape.s3platform.ru`). Set
+   `CORS_ALLOW_ORIGINS` to the SPA origin and `SESSION_COOKIE_SAMESITE=none`
+   so the session cookie can ride cross-site. `SESSION_COOKIE_SECURE=true`
+   is mandatory in this mode (browsers reject `SameSite=None` without it).
 
 ## Topology
 
@@ -33,6 +40,8 @@ Two compose-managed services + one external dependency (the platform DB).
 | `REDIS_URL` | yes | `redis://:PASSWORD@redis.internal:6379/0`. Platform's managed Redis; password is embedded in the URL — no separate `REDIS_PASSWORD` env var. |
 | `SESSION_SECRET` | yes | ≥32 chars random. `openssl rand -hex 32`. |
 | `SESSION_COOKIE_SECURE` | no (default `true`) | Force `false` only behind a non-TLS dev proxy. |
+| `SESSION_COOKIE_SAMESITE` | no (default `lax`) | `lax` for same-origin. `none` for split-domain; requires `SESSION_COOKIE_SECURE=true`. |
+| `CORS_ALLOW_ORIGINS` | no (default `[]`) | JSON array of allowed browser origins. Empty disables CORS. Example: `["https://score.s3platform.ru"]`. `allow_credentials=true` requires an exact origin, never `*`. |
 | `LOG_LEVEL` | no (`INFO`) | `DEBUG`/`INFO`/`WARNING`/`ERROR` |
 | `WORKER_INTERVAL_SECONDS` | no (`60`) | How often the generator + heartbeat fire. |
 | `LOGIN_RATE_LIMIT_PER_IP` | no (`10`) | Per-IP login-attempt ceiling. |
@@ -187,7 +196,10 @@ both work, this is just simpler.)
 Optional repository **variables** (non-secret, under the same Actions
 settings page → Variables tab; falls back to defaults if unset):
 `VPS_APP_DIR` (`/opt/tape`), `HEALTH_PATH` (`/health`), `HEALTH_PORT`
-(`8000`).
+(`8000`), `CORS_ALLOW_ORIGINS` (default `[]`), `SESSION_COOKIE_SAMESITE`
+(default `lax`). For a split-domain deploy, set
+`CORS_ALLOW_ORIGINS=["https://score.s3platform.ru"]` and
+`SESSION_COOKIE_SAMESITE=none`.
 
 ### One-time VPS prep
 

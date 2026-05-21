@@ -30,6 +30,15 @@ async def ws_endpoint(ws: WebSocket) -> None:
     never reads from the client.
     """
     s = get_settings()
+    # Browsers always send Origin on WS upgrade — Starlette doesn't gate on
+    # it, so when CORS is configured we enforce the same allowlist here.
+    # No Origin header => non-browser client; the session cookie check
+    # below is the primary auth gate either way.
+    if s.cors_allow_origins:
+        origin = ws.headers.get("origin")
+        if origin and origin not in s.cors_allow_origins:
+            await ws.close(code=_CLOSE_UNAUTHORIZED)
+            return
     raw = ws.cookies.get(s.session_cookie_name)
     ar = get_async_redis()
     sess = await sessions.validate_async(ar, raw_session=raw) if raw else None

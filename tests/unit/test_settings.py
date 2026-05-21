@@ -23,3 +23,36 @@ def test_settings_rejects_short_secret(monkeypatch):
     monkeypatch.setenv("SESSION_SECRET", "short")
     with pytest.raises(ValueError):
         Settings()
+
+
+def test_cors_allow_origins_defaults_to_empty(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@h:5432/db")
+    monkeypatch.setenv("REDIS_URL", "redis://:pw@h:6379/0")
+    monkeypatch.setenv("SESSION_SECRET", "x" * 40)
+    monkeypatch.delenv("CORS_ALLOW_ORIGINS", raising=False)
+    s = Settings()
+    assert s.cors_allow_origins == []
+
+
+def test_cors_allow_origins_parses_json_array(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@h:5432/db")
+    monkeypatch.setenv("REDIS_URL", "redis://:pw@h:6379/0")
+    monkeypatch.setenv("SESSION_SECRET", "x" * 40)
+    monkeypatch.setenv(
+        "CORS_ALLOW_ORIGINS",
+        '["https://score.s3platform.ru","https://other.example"]',
+    )
+    s = Settings()
+    assert s.cors_allow_origins == [
+        "https://score.s3platform.ru",
+        "https://other.example",
+    ]
+
+
+def test_samesite_none_is_accepted(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@h:5432/db")
+    monkeypatch.setenv("REDIS_URL", "redis://:pw@h:6379/0")
+    monkeypatch.setenv("SESSION_SECRET", "x" * 40)
+    monkeypatch.setenv("SESSION_COOKIE_SAMESITE", "None")
+    s = Settings()
+    assert s.session_cookie_samesite == "none"

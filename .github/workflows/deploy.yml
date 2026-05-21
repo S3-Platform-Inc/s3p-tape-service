@@ -151,6 +151,11 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           REDIS_URL: ${{ secrets.REDIS_URL }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          # Non-secret operational config — set as repository Variables.
+          # CORS_ALLOW_ORIGINS is a JSON array (e.g. ["https://score.s3platform.ru"]).
+          # SESSION_COOKIE_SAMESITE must be "none" for cross-site cookies.
+          CORS_ALLOW_ORIGINS: ${{ vars.CORS_ALLOW_ORIGINS || '[]' }}
+          SESSION_COOKIE_SAMESITE: ${{ vars.SESSION_COOKIE_SAMESITE || 'lax' }}
         run: |
           set -euo pipefail
           umask 077
@@ -160,6 +165,8 @@ jobs:
             printf 'REDIS_URL=%s\n' "$REDIS_URL"
             printf 'SESSION_SECRET=%s\n' "$SESSION_SECRET"
             printf 'SESSION_COOKIE_SECURE=%s\n' "true"
+            printf 'SESSION_COOKIE_SAMESITE=%s\n' "$SESSION_COOKIE_SAMESITE"
+            printf 'CORS_ALLOW_ORIGINS=%s\n' "$CORS_ALLOW_ORIGINS"
             printf 'LOG_LEVEL=%s\n' "INFO"
             printf 'WORKER_INTERVAL_SECONDS=%s\n' "60"
           } > deploy.env

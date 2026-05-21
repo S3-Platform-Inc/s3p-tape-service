@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     session_absolute_ttl_days: int = 30
     session_idle_ttl_days: int = 14
 
+    # Cross-origin allowlist for browser clients hosted on a different
+    # domain than the api (e.g. score.s3platform.ru -> tape.s3platform.ru).
+    # Empty list disables CORS — same-origin deploys behind one reverse
+    # proxy don't need it. Pydantic-settings parses JSON arrays natively:
+    # CORS_ALLOW_ORIGINS=["https://score.s3platform.ru"].
+    cors_allow_origins: list[str] = Field(default_factory=list)
+
     login_rate_limit_per_ip: int = 10
     login_rate_limit_window_seconds: int = 300
 
