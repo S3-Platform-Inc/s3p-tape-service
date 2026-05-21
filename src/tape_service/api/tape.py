@@ -18,6 +18,8 @@ from ..store import tape as tape_store
 
 router = APIRouter()
 
+_VERDICT_TO_SCORE: dict[str, float] = {"yes": 1.0, "no": 0.0, "unsure": 0.5}
+
 
 def _filter_already_scored(conn, *, user_id: int, doc_ids: list[int]) -> set[int]:
     """Defence in depth: even with the listener thread the API can race
@@ -158,7 +160,10 @@ def submit_score(
                 user_id=user.user_id,
                 document_id=payload.document_id,
                 role_id=payload.role_id,
-                verdict={"verdict": payload.verdict},
+                score_payload={
+                    "score": _VERDICT_TO_SCORE[payload.verdict],
+                    "comment": payload.comment,
+                },
                 comment=payload.comment,
             )
     except AlreadyScored:

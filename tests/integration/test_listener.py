@@ -63,7 +63,7 @@ def test_listener_removes_tape_entry_on_score(redis_client, pg_dsn, cleanup_user
                 user_id=1,
                 document_id=1,
                 role_id=1,
-                verdict={"verdict": "yes"},
+                score_payload={"score": 1.0, "comment": None},
                 comment=None,
             )
 

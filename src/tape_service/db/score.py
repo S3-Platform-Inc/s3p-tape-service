@@ -17,7 +17,7 @@ def save(
     user_id: int,
     document_id: int,
     role_id: int,
-    verdict: dict[str, Any],
+    score_payload: dict[str, Any],
     comment: str | None,
 ) -> int:
     """Call score.save(_uid, telegram_id, _did, _rid, _score, _comment).
@@ -31,7 +31,7 @@ def save(
         with conn.cursor() as cur:
             cur.execute(
                 "SELECT score.save(%s, %s, %s, %s, %s::json, %s)",
-                (user_id, None, document_id, role_id, json.dumps(verdict), comment),
+                (user_id, None, document_id, role_id, json.dumps(score_payload), comment),
             )
             row = cur.fetchone()
         return int(row[0])

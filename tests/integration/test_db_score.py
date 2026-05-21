@@ -27,7 +27,7 @@ def test_save_happy_path_returns_int(pg_dsn, clean_alpha_role1_doc1):
             user_id=1,
             document_id=1,
             role_id=1,
-            verdict={"verdict": "yes"},
+            score_payload={"score": 1.0, "comment": None},
             comment=None,
         )
         assert isinstance(sid, int) and sid > 0
@@ -35,10 +35,22 @@ def test_save_happy_path_returns_int(pg_dsn, clean_alpha_role1_doc1):
 
 def test_save_duplicate_raises_already_scored(pg_dsn, clean_alpha_role1_doc1):
     with psycopg.connect(pg_dsn, autocommit=True) as conn:
-        save(conn, user_id=1, document_id=1, role_id=1, verdict={"verdict": "yes"}, comment=None)
+        save(
+            conn,
+            user_id=1,
+            document_id=1,
+            role_id=1,
+            score_payload={"score": 1.0, "comment": None},
+            comment=None,
+        )
         with pytest.raises(AlreadyScored):
             save(
-                conn, user_id=1, document_id=1, role_id=1, verdict={"verdict": "no"}, comment="dup"
+                conn,
+                user_id=1,
+                document_id=1,
+                role_id=1,
+                score_payload={"score": 0.0, "comment": "dup"},
+                comment="dup",
             )
 
 
@@ -55,7 +67,7 @@ def test_notify_fires_on_insert(pg_dsn, clean_alpha_role1_doc1):
                 user_id=1,
                 document_id=1,
                 role_id=1,
-                verdict={"verdict": "unsure"},
+                score_payload={"score": 0.5, "comment": None},
                 comment=None,
             )
 
