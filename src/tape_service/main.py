@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import logging
+import os
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -39,17 +41,34 @@ async def lifespan(_app: FastAPI):
         log.info("api.shutdown")
 
 
+def _cors_allow_origins_from_env() -> list[str]:
+    # Read directly from env so create_app() stays a pure constructor and
+    # doesn't trip Settings validation in environments without DB/Redis/
+    # session secret (e.g. the docker build's smoke test, which imports
+    # this module to confirm the app instantiates).
+    raw = os.environ.get("CORS_ALLOW_ORIGINS", "").strip()
+    if not raw:
+        return []
+    try:
+        v = json.loads(raw)
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(v, list):
+        return []
+    return [str(x) for x in v]
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="S3 Platform Tape Service", version="0.1.0", lifespan=lifespan)
-    s = get_settings()
     # Only mount CORS when the deploy actually spans two domains. Empty
     # allowlist => same-origin deploy => no preflight overhead, no
     # accidental exposure. allow_credentials with credentials:'include'
     # requires an *exact* origin echo back; "*" is intentionally never used.
-    if s.cors_allow_origins:
+    origins = _cors_allow_origins_from_env()
+    if origins:
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=s.cors_allow_origins,
+            allow_origins=origins,
             allow_credentials=True,
             allow_methods=["GET", "POST", "PUT", "OPTIONS"],
             allow_headers=["content-type"],
